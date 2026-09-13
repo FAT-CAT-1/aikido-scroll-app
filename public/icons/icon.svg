@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="合氣道徹底解説">
+  <!-- 仮アイコン（docs/decisions.md D-10）：和紙地に墨の円相と朱の落款。本デザインは E10 で差し替え -->
+  <rect width="512" height="512" fill="#efe8d8"/>
+  <g fill="none" stroke="#1a1a1a" stroke-linecap="round">
+    <!-- 円相：太い主線（215°→175° 時計回り）＋先を細く抜く尾 -->
+    <path d="M133.1 170.0 A150 150 0 1 1 106.6 269.1" stroke-width="34"/>
+    <path d="M141.1 352.4 A150 150 0 0 1 115.0 204.7" stroke-width="16"/>
+  </g>
+  <!-- 朱の落款 -->
+  <rect x="356" y="366" width="60" height="60" rx="4" fill="#b7282e"/>
+  <rect x="368" y="378" width="36" height="36" rx="2" fill="none" stroke="#efe8d8" stroke-width="5"/>
+</svg>
