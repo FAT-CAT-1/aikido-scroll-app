@@ -1,0 +1,31 @@
+{
+  "description": "標準体型の骨長（animation-spec §9）。全技共通。pose.json 初版生成の初期値と骨長チェック（±15%）の基準。単位は viewBox（身長約400）",
+  "bones": {
+    "head-neck": 45,
+    "neck-shoulder": 18,
+    "shoulder-elbow": 60,
+    "elbow-wrist": 55,
+    "neck-hip": 125,
+    "hip-hipjoint": 13,
+    "hipjoint-knee": 115,
+    "knee-ankle": 110
+  },
+  "head_radius": 20,
+  "foot_length": 24,
+  "segments": [
+    ["head", "neck", "head-neck"],
+    ["neck", "shoulder_f", "neck-shoulder"],
+    ["neck", "shoulder_b", "neck-shoulder"],
+    ["shoulder_f", "elbow_f", "shoulder-elbow"],
+    ["elbow_f", "wrist_f", "elbow-wrist"],
+    ["shoulder_b", "elbow_b", "shoulder-elbow"],
+    ["elbow_b", "wrist_b", "elbow-wrist"],
+    ["neck", "hip", "neck-hip"],
+    ["hip", "hipjoint_f", "hip-hipjoint"],
+    ["hip", "hipjoint_b", "hip-hipjoint"],
+    ["hipjoint_f", "knee_f", "hipjoint-knee"],
+    ["knee_f", "ankle_f", "knee-ankle"],
+    ["hipjoint_b", "knee_b", "hipjoint-knee"],
+    ["knee_b", "ankle_b", "knee-ankle"]
+  ]
+}
