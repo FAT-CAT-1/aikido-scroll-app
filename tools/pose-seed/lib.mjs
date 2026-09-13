@@ -120,3 +120,60 @@ export function figure(s, label) {
 export function jointOf(fig, name) {
   return fig.joints[name]
 }
+
+/** 画面の左右を反転した姿勢（x → 1000 − x、facing 反転。向きの角度は facing 基準なのでそのまま） */
+export function mirror(fig) {
+  return {
+    ...fig,
+    facing: -fig.facing,
+    joints: Object.fromEntries(Object.entries(fig.joints).map(([k, [x, y]]) => [k, [1000 - x, y]])),
+  }
+}
+
+const MAT = 508
+
+/** 正座（腰を踵に下ろす）。knee: 手前の膝の位置 x。wrists 省略時は膝の上に手を置く */
+export function seiza({ facing, kneeX, torso = 4, neck = 0, lead = 'f', wrists, elbows, gaze = -5, head_dir = 0, hara_dir = 0, sit = 1 }, label) {
+  // sit=1 で踵に座る、0 に近いほど膝立ちに近づく
+  const thigh = 90 - 30 * (1 - sit)
+  const base = figure(
+    { facing, anchor: ['knee_f', [kneeX, MAT]], torso, neck, lead, gaze, head_dir, hara_dir, legs: { f: [thigh, -94], b: [thigh - 4, -96] }, arms: { f: [20, 70], b: [16, 66] } },
+    label,
+  )
+  if (!wrists) return base
+  return figure(
+    { facing, hip: base.joints.hip, torso, neck, lead, gaze, head_dir, hara_dir, legs: { f: [thigh, -94], b: [thigh - 4, -96] }, wrists, elbows },
+    label,
+  )
+}
+
+/** 仰向け（頭の x が headX、体は頭から dir 方向＝1 右 / -1 左へ伸びる）。膝を立てる */
+export function supine({ headX, dir, y = 486, wrists, elbows, gaze = 85, head_dir = 70, knees = 40 }, label) {
+  // 仰向け: facing＝足の方向（dir）とし、胴を後ろへ 88° 倒す（体の正面が上を向く）
+  const facing = /** @type {1 | -1} */ (dir)
+  const hip = [headX + dir * (45 + 125), y + 8]
+  return figure(
+    {
+      facing, hip, torso: -88, neck: 4, lead: 'f', gaze, head_dir, hara_dir: 85,
+      // 大腿は上前方へ（膝を立てる）、下腿は床へ下りる
+      legs: { f: [90 + knees, 90 - knees * 1.2], b: [90 + knees * 0.8, 90 - knees] },
+      wrists: wrists ?? { f: [hip[0] - dir * 30, y + 16], b: [hip[0] - dir * 10, y + 18] },
+      elbows: elbows ?? { f: 'up', b: 'up' },
+    },
+    label,
+  )
+}
+
+/** pose.json を書き出す（pose-editor と同じ整形）。既存ファイルは --force 無しでは上書きしない */
+export async function writePose(id, keyframes) {
+  const { existsSync, writeFileSync } = await import('node:fs')
+  const out = path.join(ROOT, 'content', 'poses', `${id}.pose.json`)
+  if (existsSync(out) && !process.argv.includes('--force')) {
+    console.error(`${path.relative(process.cwd(), out)} は既にあります（エディタでの修正を守るため上書きしません。--force で上書き）`)
+    process.exit(1)
+  }
+  const pose = { id, viewBox: [1000, 600], ground: 520, keyframes }
+  writeFileSync(out, JSON.stringify(pose, null, 2).replace(/\[\s+(-?\d+(?:\.\d+)?),\s+(-?\d+(?:\.\d+)?)\s+\]/g, '[$1, $2]') + '\n')
+  console.log(`書き出し: ${path.relative(process.cwd(), out)}`)
+  for (const w of warnings) console.log(`  注意: ${w}`)
+}
