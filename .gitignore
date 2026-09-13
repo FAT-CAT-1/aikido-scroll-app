@@ -1,0 +1,26 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+src/generated/
+
+# vite-plugin-pwa（開発用SW出力）
+dev-dist/
+
+# テスト成果物
+coverage/
+playwright-report/
+test-results/
+
+# 環境変数
+.env
+.env.*
+
+# フォント原本（OFL配布TTF。サブセット済みwoff2のみ public/fonts/ に置く）
+fonts-src/
+
+# OS
+Thumbs.db
+
+# 第三者動画の文字起こし全文（公開リポジトリでは再配布しない。ローカル保持）
+docs/references/*.txt
