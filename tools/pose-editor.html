@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ポーズエディタ｜合氣道徹底解説</title>
+<!--
+  簡易ポーズエディタ v1（animation-spec §8 / backlog T10）
+  ビルド不要の単一 HTML。ダブルクリックでブラウザが開けば動く（依存ライブラリなし）。
+  content/poses/{技id}.pose.json を開いて関節を動かし、「保存」でダウンロード → 元の場所に上書きする。
+-->
+<style>
+  :root {
+    --sumi: #1a1a1a; --sumi2: #333; --sumi3: #555; --tan: #8a8a8a; --sei: #c9c4b8;
+    --shu: #b7282e; --washi: #efe8d8; --washi2: #f6f1e6; --ok: #2f6b3a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--washi); color: var(--sumi2); font: 15px/1.6 "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; }
+  header, .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--sei); }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; color: var(--sumi); }
+  button, select, input { font: inherit; }
+  button { background: var(--washi2); border: 1px solid var(--tan); border-radius: 4px; padding: 4px 10px; cursor: pointer; color: var(--sumi); min-height: 32px; }
+  button:hover { border-color: var(--sumi); }
+  button.primary { background: var(--sumi); color: var(--washi); border-color: var(--sumi); }
+  button[aria-pressed="true"] { background: var(--sumi2); color: var(--washi); }
+  button:disabled { opacity: .45; cursor: default; }
+  input[type=number] { width: 5.5em; }
+  input[type=text] { width: 8em; }
+  label { display: inline-flex; gap: 4px; align-items: center; }
+  .sep { width: 1px; align-self: stretch; background: var(--sei); margin: 0 4px; }
+  .muted { color: var(--sumi3); font-size: 13px; }
+  main { padding: 8px 12px; }
+  #stage { width: 100%; max-width: 1200px; background: #f3eddf; border: 1px solid var(--sei); display: block; margin: 0 auto; touch-action: none; user-select: none; }
+  .joint { cursor: grab; }
+  .joint.sel circle.dot { stroke: var(--shu); stroke-width: 4; }
+  .handle { cursor: grab; }
+  #inspector { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 16px; padding: 8px 12px; border-top: 1px solid var(--sei); }
+  fieldset { border: 1px solid var(--sei); border-radius: 4px; padding: 6px 10px; margin: 0; }
+  legend { font-weight: bold; color: var(--sumi); padding: 0 4px; }
+  fieldset .row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 2px 0; }
+  #checks { padding: 8px 12px 16px; }
+  #checks ul { margin: 4px 0; padding-left: 1.2em; }
+  #checks li.err { color: var(--shu); }
+  #checks li.ok { color: var(--ok); list-style: "✓ "; }
+  #status { min-height: 1.6em; }
+  details { padding: 0 12px 24px; }
+  details li { margin: 2px 0; }
+  kbd { border: 1px solid var(--tan); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; font-size: 12px; background: var(--washi2); }
+  #drop { position: fixed; inset: 0; background: rgba(26,26,26,.55); color: var(--washi); display: none; place-items: center; font-size: 28px; z-index: 10; }
+  #drop.on { display: grid; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ポーズエディタ</h1>
+  <button id="btnOpen" class="primary">ファイルを開く</button>
+  <input id="file" type="file" accept=".json,application/json" hidden>
+  <button id="btnSave" disabled>保存（JSONダウンロード）</button>
+  <button id="btnCopy" disabled>コピー</button>
+  <span class="sep"></span>
+  <button id="btnUndo" disabled title="Ctrl+Z">元に戻す</button>
+  <button id="btnRedo" disabled title="Ctrl+Y">やり直す</button>
+  <span class="sep"></span>
+  <span>技: <b id="techId">（未読込）</b></span>
+  <span id="status" class="muted" role="status" aria-live="polite"></span>
+</header>
+
+<div class="bar">
+  <label>kf: <select id="kfSelect" disabled></select></label>
+  <button id="btnAddKf" disabled>＋kf追加</button>
+  <button id="btnDelKf" disabled>削除</button>
+  <label>id: <input id="kfId" type="text" disabled></label>
+  <label>at: <input id="kfAt" type="number" min="0" max="1" step="0.01" disabled></label>
+  <label>ease: <select id="kfEase" disabled></select></label>
+  <span class="muted">kf の追加・削除・id/at 変更は原稿（content/techniques/*.md）にも同じものを書く</span>
+</div>
+
+<main>
+  <svg id="stage" viewBox="0 0 1000 600" aria-label="ポーズの編集キャンバス" role="img"></svg>
+</main>
+
+<section id="inspector">
+  <fieldset>
+    <legend>選択中の関節</legend>
+    <div class="row"><span id="selLabel">（関節の丸をクリック）</span></div>
+    <div class="row">
+      <label>x: <input id="selX" type="number" step="1" disabled></label>
+      <label>y: <input id="selY" type="number" step="1" disabled></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>向き（<span id="roleName">取り</span>）</legend>
+    <div class="row">
+      <label>顔 head_dir: <input id="headDir" type="number" step="1" disabled></label>
+      <label>視線 gaze: <input id="gaze" type="number" step="1" disabled></label>
+    </div>
+    <div class="row">
+      <label>帯 hara_dir: <input id="haraDir" type="number" step="1" disabled></label>
+      <span>facing:</span>
+      <button id="faceR" aria-pressed="false" disabled>→ 右</button>
+      <button id="faceL" aria-pressed="false" disabled>← 左</button>
+    </div>
+    <div class="row muted">角度は 0＝体の正面方向、＋が上、−が下（度）。頭・帯の小さな丸をドラッグしても変わる</div>
+  </fieldset>
+  <fieldset>
+    <legend>表示と再生</legend>
+    <div class="row">
+      <label><input id="lock" type="checkbox" checked> 骨長ロック</label>
+      <label><input id="ghost" type="checkbox" checked> 残像</label>
+      <label>編集する人: <select id="roleSelect"><option value="tori">取り</option><option value="uke">受け</option><option value="both">両方</option></select></label>
+    </div>
+    <div class="row">
+      <button id="btnPlay" disabled>プレビュー再生 ▶</button>
+      <label>速さ <select id="speed"><option value="6">ゆっくり</option><option value="3" selected>ふつう</option><option value="1.5">はやい</option></select></label>
+    </div>
+  </fieldset>
+</section>
+
+<section id="checks" aria-live="polite">
+  <b>検証</b>
+  <ul id="checkList"><li class="muted">ファイルを開くと、15関節の欠落・at の重複・骨長 ±15% 超・地面より下などを表示します。</li></ul>
+</section>
+
+<details open>
+  <summary><b>使い方（5ステップ）</b></summary>
+  <ol>
+    <li>「ファイルを開く」で <code>content/poses/ikkyo-omote.pose.json</code> を選ぶ（ファイルをこの画面にドラッグしてもよい）。</li>
+    <li>上の「kf」で直したいキーフレームを選び、<b>自分でその形を取ってから</b>、違う関節の丸をドラッグして合わせる。</li>
+    <li>「残像」を ON にして前後の kf（薄い灰色）と見比べる。不自然なら「＋kf追加」で中間ポーズを足す（原稿にも同じ kf を追加）。</li>
+    <li>「プレビュー再生」で流れを確認する（ここでは直線補間。正確な動きはアプリで確認）。</li>
+    <li>「保存」で JSON をダウンロードし、元の場所に上書き → Claude Code に「pose.json 更新した、反映して」と伝える。</li>
+  </ol>
+  <p class="muted">操作のコツ：</p>
+  <ul class="muted">
+    <li>骨長ロック ON：<b>手首・足首</b>をドラッグすると肘・膝が自動で曲がる。<b>肘・膝・肩など</b>をドラッグするとその先が回転して付いてくる。<b>腰</b>をドラッグすると全身が移動。</li>
+    <li><kbd>Ctrl</kbd>を押しながら腰をドラッグ：足首をその場に残して腰だけ上下・前後（膝が曲がる）。</li>
+    <li><kbd>Alt</kbd>を押しながらドラッグ：その関節だけ自由に移動（骨の長さが変わるので注意）。</li>
+    <li>選択中の関節は <kbd>←↑→↓</kbd> で 1、<kbd>Shift</kbd>＋矢印で 10 動く。<kbd>Ctrl</kbd>+<kbd>Z</kbd> で元に戻す。</li>
+  </ul>
+</details>
+
+<div id="drop">ここに pose.json をドロップ</div>
+
+<script>
+'use strict'
+
+// ---------- 定数（content/poses/_body.json と同じ値） ----------
+const JOINTS = ['head','neck','shoulder_f','shoulder_b','elbow_f','elbow_b','wrist_f','wrist_b','hip','hipjoint_f','hipjoint_b','knee_f','knee_b','ankle_f','ankle_b']
+const JOINT_JA = { head:'頭', neck:'首', shoulder_f:'肩（手前）', shoulder_b:'肩（奥）', elbow_f:'肘（手前）', elbow_b:'肘（奥）', wrist_f:'手首（手前）', wrist_b:'手首（奥）', hip:'腰（帯）', hipjoint_f:'股関節（手前）', hipjoint_b:'股関節（奥）', knee_f:'膝（手前）', knee_b:'膝（奥）', ankle_f:'足首（手前）', ankle_b:'足首（奥）' }
+const PARENT = { neck:'hip', head:'neck', shoulder_f:'neck', shoulder_b:'neck', elbow_f:'shoulder_f', wrist_f:'elbow_f', elbow_b:'shoulder_b', wrist_b:'elbow_b', hipjoint_f:'hip', hipjoint_b:'hip', knee_f:'hipjoint_f', ankle_f:'knee_f', knee_b:'hipjoint_b', ankle_b:'knee_b' }
+const CHILDREN = {}
+for (const [c, p] of Object.entries(PARENT)) (CHILDREN[p] ||= []).push(c)
+const BONE_STD = { 'head-neck':45, 'neck-shoulder_f':18, 'neck-shoulder_b':18, 'shoulder_f-elbow_f':60, 'elbow_f-wrist_f':55, 'shoulder_b-elbow_b':60, 'elbow_b-wrist_b':55, 'neck-hip':125, 'hip-hipjoint_f':13, 'hip-hipjoint_b':13, 'hipjoint_f-knee_f':115, 'knee_f-ankle_f':110, 'hipjoint_b-knee_b':115, 'knee_b-ankle_b':110 }
+const BONES = Object.keys(BONE_STD).map(k => k.split('-'))
+const EASES = ['power2.inOut','power1.inOut','power3.inOut','power1.out','power2.out','power1.in','power2.in','sine.inOut','none']
+const ROLE_JA = { tori: '取り', uke: '受け' }
+const COLOR = { tori: '#1a1a1a', uke: '#6b6b6b' }
+const NS = 'http://www.w3.org/2000/svg'
+
+// ---------- 状態 ----------
+let doc = null
+let fileName = 'pose.json'
+let kfIndex = 0
+let selected = null // { role, joint }
+let dirty = false
+let playing = null
+const undoStack = []
+const redoStack = []
+
+const $ = id => document.getElementById(id)
+const stage = $('stage')
+
+// ---------- 幾何 ----------
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1])
+const rnd = v => Math.round(v)
+const clone = o => JSON.parse(JSON.stringify(o))
+function dirVec(facing, deg) { const r = deg * Math.PI / 180; return [facing * Math.cos(r), -Math.sin(r)] }
+function angleOf(facing, dx, dy) { return rnd(Math.atan2(-dy, facing * dx) * 180 / Math.PI) }
+function descendants(j) { const out = []; for (const c of CHILDREN[j] || []) out.push(c, ...descendants(c)); return out }
+function rotateAround(p, c, a) { const s = Math.sin(a), co = Math.cos(a), x = p[0] - c[0], y = p[1] - c[1]; return [c[0] + x * co - y * s, c[1] + x * s + y * co] }
+
+// 2リンク IK（膝・肘の曲がる向きは現在の向きを保つ）
+// 骨長と曲がる向きは「動かす前」の root/mid/end から測る（root を先に動かす場合は before を渡す）
+function solveTwoBone(root, mid, end, target, before = { root, mid, end }) {
+  const l1 = dist(before.root, before.mid), l2 = dist(before.mid, before.end)
+  const d = Math.max(Math.abs(l1 - l2) + 0.01, Math.min(l1 + l2 - 0.01, dist(root, target)))
+  const ux = (target[0] - root[0]) / (dist(root, target) || 1), uy = (target[1] - root[1]) / (dist(root, target) || 1)
+  const a = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))))
+  const b = before
+  const cross = (b.end[0] - b.root[0]) * (b.mid[1] - b.root[1]) - (b.end[1] - b.root[1]) * (b.mid[0] - b.root[0])
+  const sign = cross >= 0 ? -1 : 1
+  const rx = ux * Math.cos(sign * a) - uy * Math.sin(sign * a), ry = ux * Math.sin(sign * a) + uy * Math.cos(sign * a)
+  const newMid = [root[0] + rx * l1, root[1] + ry * l1]
+  const ex = target[0] - newMid[0], ey = target[1] - newMid[1], el = Math.hypot(ex, ey) || 1
+  return [newMid, [newMid[0] + ex / el * l2, newMid[1] + ey / el * l2]]
+}
+
+// ---------- 編集操作 ----------
+function currentKf() { return doc.keyframes[kfIndex] }
+
+function moveJoint(fig, joint, target, mode) {
+  const J = fig.joints
+  if (mode === 'free') { J[joint] = target; return }
+  if (joint === 'hip' && mode === 'plant') {
+    // 足首を残して腰（と上半身）だけ動かす
+    const d = [target[0] - J.hip[0], target[1] - J.hip[1]]
+    const legs = ['f', 'b'].map(k => ({ k, root: J['hipjoint_' + k], mid: J['knee_' + k], end: J['ankle_' + k] }))
+    for (const j of ['hip', 'neck', 'head', 'shoulder_f', 'shoulder_b', 'elbow_f', 'elbow_b', 'wrist_f', 'wrist_b', 'hipjoint_f', 'hipjoint_b']) J[j] = [J[j][0] + d[0], J[j][1] + d[1]]
+    for (const leg of legs) [J['knee_' + leg.k], J['ankle_' + leg.k]] = solveTwoBone(J['hipjoint_' + leg.k], leg.mid, leg.end, leg.end, leg)
+    return
+  }
+  if (joint === 'hip') {
+    const d = [target[0] - J.hip[0], target[1] - J.hip[1]]
+    for (const j of JOINTS) J[j] = [J[j][0] + d[0], J[j][1] + d[1]]
+    return
+  }
+  const ik = { wrist_f: ['shoulder_f', 'elbow_f'], wrist_b: ['shoulder_b', 'elbow_b'], ankle_f: ['hipjoint_f', 'knee_f'], ankle_b: ['hipjoint_b', 'knee_b'] }[joint]
+  if (ik) { [J[ik[1]], J[joint]] = solveTwoBone(J[ik[0]], J[ik[1]], J[joint], target); return }
+  const p = J[PARENT[joint]]
+  const a = Math.atan2(target[1] - p[1], target[0] - p[0]) - Math.atan2(J[joint][1] - p[1], J[joint][0] - p[0])
+  for (const j of [joint, ...descendants(joint)]) J[j] = rotateAround(J[j], p, a)
+}
+
+function snap(fig) { for (const j of JOINTS) fig.joints[j] = [rnd(fig.joints[j][0]), rnd(fig.joints[j][1])] }
+
+function pushUndo() {
+  undoStack.push(JSON.stringify({ doc, kfIndex }))
+  if (undoStack.length > 200) undoStack.shift()
+  redoStack.length = 0
+  dirty = true
+  updateButtons()
+}
+function undo() { if (!undoStack.length) return; redoStack.push(JSON.stringify({ doc, kfIndex })); ({ doc, kfIndex } = JSON.parse(undoStack.pop())); refreshAll() }
+function redo() { if (!redoStack.length) return; undoStack.push(JSON.stringify({ doc, kfIndex })); ({ doc, kfIndex } = JSON.parse(redoStack.pop())); refreshAll() }
+
+// ---------- 描画 ----------
+function el(name, attrs = {}, parent) {
+  const e = document.createElementNS(NS, name)
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v)
+  if (parent) parent.appendChild(e)
+  return e
+}
+
+function drawFigure(g, fig, role, { ghost = false, interactive = false } = {}) {
+  const J = fig.joints
+  const color = ghost ? '#b5ad9c' : COLOR[role]
+  const layer = el('g', { opacity: ghost ? 0.7 : 1 }, g)
+  const order = [...BONES].sort((a, b) => (b.join().includes('_b') ? 1 : 0) - (a.join().includes('_b') ? 1 : 0))
+  for (const [a, b] of order) {
+    if (!J[a] || !J[b]) continue
+    const far = a.endsWith('_b') || b.endsWith('_b')
+    el('line', { x1: J[a][0], y1: J[a][1], x2: J[b][0], y2: J[b][1], stroke: color, 'stroke-width': a === 'neck' && b === 'hip' ? 8 : 6, 'stroke-linecap': 'round', 'stroke-opacity': far ? 0.55 : 1, 'stroke-dasharray': ghost ? '6 6' : '' }, layer)
+  }
+  for (const k of ['b', 'f']) if (J['ankle_' + k]) el('line', { x1: J['ankle_' + k][0], y1: J['ankle_' + k][1], x2: J['ankle_' + k][0] + fig.facing * 22, y2: J['ankle_' + k][1], stroke: color, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-opacity': k === 'b' ? 0.55 : 1 }, layer)
+  if (J.head) el('circle', { cx: J.head[0], cy: J.head[1], r: 20, fill: ghost ? 'none' : '#f3eddf', stroke: color, 'stroke-width': 5, 'stroke-dasharray': ghost ? '6 6' : '' }, layer)
+  if (ghost || !J.head || !J.hip) return
+  const hd = dirVec(fig.facing, fig.head_dir), gz = dirVec(fig.facing, fig.gaze), hr = dirVec(fig.facing, fig.hara_dir)
+  el('line', { x1: J.head[0], y1: J.head[1], x2: J.head[0] + hd[0] * 32, y2: J.head[1] + hd[1] * 32, stroke: color, 'stroke-width': 4 }, layer)
+  el('line', { x1: J.head[0], y1: J.head[1], x2: J.head[0] + gz[0] * 80, y2: J.head[1] + gz[1] * 80, stroke: color, 'stroke-width': 1.5, 'stroke-dasharray': '3 4' }, layer)
+  el('line', { x1: J.hip[0], y1: J.hip[1], x2: J.hip[0] + hr[0] * 44, y2: J.hip[1] + hr[1] * 44, stroke: '#b7282e', 'stroke-width': 4, 'stroke-linecap': 'round' }, layer)
+  if (!interactive) return
+  const handle = (key, base, v, len, fill) => {
+    const h = el('g', { class: 'handle', 'data-role': role, 'data-handle': key }, layer)
+    el('circle', { cx: base[0] + v[0] * len, cy: base[1] + v[1] * len, r: 12, fill: 'transparent' }, h)
+    el('circle', { cx: base[0] + v[0] * len, cy: base[1] + v[1] * len, r: 6, fill, stroke: '#f3eddf', 'stroke-width': 2 }, h)
+    el('title', {}, h).textContent = { head_dir: '顔の向き', gaze: '視線', hara_dir: '帯（丹田）の向き' }[key]
+  }
+  handle('head_dir', J.head, hd, 32, color)
+  handle('gaze', J.head, gz, 80, '#8a8a8a')
+  handle('hara_dir', J.hip, hr, 44, '#b7282e')
+  for (const j of JOINTS) {
+    if (!J[j]) continue
+    const isSel = selected && selected.role === role && selected.joint === j
+    const jg = el('g', { class: 'joint' + (isSel ? ' sel' : ''), 'data-role': role, 'data-joint': j }, layer)
+    el('circle', { cx: J[j][0], cy: J[j][1], r: 14, fill: 'transparent' }, jg)
+    el('circle', { class: 'dot', cx: J[j][0], cy: J[j][1], r: 6, fill: j.endsWith('_b') ? '#f3eddf' : color, stroke: color, 'stroke-width': 2 }, jg)
+    el('title', {}, jg).textContent = `${ROLE_JA[role]}・${JOINT_JA[j]}`
+  }
+}
+
+function render(overridePose) {
+  stage.textContent = ''
+  const W = doc?.viewBox?.[0] ?? 1000, H = doc?.viewBox?.[1] ?? 600, ground = doc?.ground ?? 520
+  for (let x = 0; x <= W; x += 100) {
+    el('line', { x1: x, y1: 0, x2: x, y2: H, stroke: '#e2dac8', 'stroke-width': 1 }, stage)
+    el('text', { x: x + 3, y: H - 6, 'font-size': 12, fill: '#a39c8c' }, stage).textContent = x
+  }
+  for (let y = 100; y < H; y += 100) el('line', { x1: 0, y1: y, x2: W, y2: y, stroke: '#e2dac8', 'stroke-width': 1 }, stage)
+  el('line', { x1: 0, y1: ground, x2: W, y2: ground, stroke: '#8a8a8a', 'stroke-width': 2 }, stage)
+  el('text', { x: 6, y: ground - 6, 'font-size': 12, fill: '#8a8a8a' }, stage).textContent = `地面 y=${ground}`
+  if (!doc) return
+  if (overridePose) {
+    const g = el('g', {}, stage)
+    drawFigure(g, overridePose.uke, 'uke'); drawFigure(g, overridePose.tori, 'tori')
+    return
+  }
+  const ghosts = $('ghost').checked
+  const g0 = el('g', {}, stage)
+  if (ghosts) for (const i of [kfIndex - 1, kfIndex + 1]) {
+    const k = doc.keyframes[i]
+    if (k) { drawFigure(g0, k.uke, 'uke', { ghost: true }); drawFigure(g0, k.tori, 'tori', { ghost: true }) }
+  }
+  const kf = currentKf()
+  const edit = $('roleSelect').value
+  const g1 = el('g', {}, stage)
+  // 編集対象を手前に描く
+  const roles = edit === 'uke' ? ['tori', 'uke'] : ['uke', 'tori']
+  for (const r of roles) drawFigure(g1, kf[r], r, { interactive: edit === 'both' || edit === r })
+}
+
+function refreshInspector() {
+  const kf = doc && currentKf()
+  const role = selected?.role ?? ($('roleSelect').value === 'uke' ? 'uke' : 'tori')
+  $('roleName').textContent = ROLE_JA[role]
+  const has = !!kf
+  for (const id of ['headDir', 'gaze', 'haraDir', 'faceR', 'faceL']) $(id).disabled = !has
+  if (has) {
+    const fig = kf[role]
+    $('headDir').value = fig.head_dir; $('gaze').value = fig.gaze; $('haraDir').value = fig.hara_dir
+    $('faceR').setAttribute('aria-pressed', String(fig.facing === 1)); $('faceL').setAttribute('aria-pressed', String(fig.facing === -1))
+  }
+  if (selected && kf) {
+    const p = kf[selected.role].joints[selected.joint]
+    $('selLabel').textContent = `${ROLE_JA[selected.role]}（${selected.role}）・${JOINT_JA[selected.joint]}（${selected.joint}）`
+    $('selX').value = p[0]; $('selY').value = p[1]; $('selX').disabled = $('selY').disabled = false
+  } else {
+    $('selLabel').textContent = '（関節の丸をクリック）'; $('selX').value = $('selY').value = ''; $('selX').disabled = $('selY').disabled = true
+  }
+}
+
+function refreshKfBar() {
+  const sel = $('kfSelect')
+  sel.textContent = ''
+  if (!doc) return
+  doc.keyframes.forEach((k, i) => { const o = document.createElement('option'); o.value = i; o.textContent = `${k.id}（at=${k.at}）`; sel.appendChild(o) })
+  sel.value = kfIndex
+  const kf = currentKf()
+  $('kfId').value = kf.id; $('kfAt').value = kf.at
+  $('kfEase').value = kf.ease ?? 'power2.inOut'
+}
+
+function updateButtons() {
+  const has = !!doc
+  for (const id of ['btnSave', 'btnCopy', 'btnAddKf', 'btnPlay', 'kfSelect', 'kfId', 'kfAt', 'kfEase']) $(id).disabled = !has
+  $('btnDelKf').disabled = !has || doc.keyframes.length <= 1
+  $('btnUndo').disabled = !undoStack.length
+  $('btnRedo').disabled = !redoStack.length
+  $('btnSave').textContent = dirty ? '保存（JSONダウンロード）●' : '保存（JSONダウンロード）'
+}
+
+function refreshAll() { refreshKfBar(); render(); refreshInspector(); updateButtons(); validate() }
+
+// ---------- 検証（animation-spec §3 §10 と同じ観点） ----------
+function validate() {
+  const list = $('checkList')
+  list.textContent = ''
+  const errs = [], warns = []
+  const add = (arr, s) => arr.push(s)
+  if (!doc) return
+  if (!Array.isArray(doc.viewBox) || doc.viewBox[0] !== 1000 || doc.viewBox[1] !== 600) add(errs, 'viewBox は [1000, 600] 固定')
+  const ats = new Set()
+  doc.keyframes.forEach((k, i) => {
+    if (ats.has(k.at)) add(errs, `kf「${k.id}」: at=${k.at} が重複`)
+    ats.add(k.at)
+    if (i > 0 && !(k.at > doc.keyframes[i - 1].at)) add(errs, `kf「${k.id}」: at が単調増加していない`)
+    for (const r of ['tori', 'uke']) {
+      const f = k[r]
+      if (!f) { add(errs, `kf「${k.id}」: ${ROLE_JA[r]} が無い`); continue }
+      const miss = JOINTS.filter(j => !Array.isArray(f.joints?.[j]))
+      if (miss.length) add(errs, `kf「${k.id}」${ROLE_JA[r]}: 関節の欠落 ${miss.map(j => JOINT_JA[j]).join('・')}`)
+      if (miss.length) continue
+      for (const [a, b] of BONES) {
+        const std = BONE_STD[`${a}-${b}`], len = dist(f.joints[a], f.joints[b])
+        if (Math.abs(len - std) / std > 0.15) add(warns, `kf「${k.id}」${ROLE_JA[r]}: 骨「${JOINT_JA[a]}–${JOINT_JA[b]}」が標準 ${std} に対し ${len.toFixed(0)}（±15% 超）`)
+      }
+      const below = JOINTS.filter(j => f.joints[j][1] > doc.ground)
+      if (below.length) add(warns, `kf「${k.id}」${ROLE_JA[r]}: 地面より下 ${below.map(j => JOINT_JA[j]).join('・')}`)
+      if (Math.abs(f.hara_dir) >= 90) add(warns, `kf「${k.id}」${ROLE_JA[r]}: 帯の向き（hara_dir=${f.hara_dir}）が体の正面から90°以上ずれている`)
+    }
+    if (k.tori?.joints?.head && k.uke?.joints?.head && dist(k.tori.joints.head, k.uke.joints.head) < 60) add(warns, `kf「${k.id}」: 取りと受けの頭が近すぎる（重なりすぎ）`)
+  })
+  for (const s of errs) { const li = document.createElement('li'); li.className = 'err'; li.textContent = 'エラー: ' + s; list.appendChild(li) }
+  for (const s of warns) { const li = document.createElement('li'); li.className = 'err'; li.textContent = '警告: ' + s; list.appendChild(li) }
+  if (!errs.length && !warns.length) { const li = document.createElement('li'); li.className = 'ok'; li.textContent = '問題なし（15関節・at・骨長・地面）'; list.appendChild(li) }
+}
+
+// ---------- 読み込み・保存 ----------
+function formatPose(p) {
+  return JSON.stringify(p, null, 2).replace(/\[\s+(-?\d+(?:\.\d+)?),\s+(-?\d+(?:\.\d+)?)\s+\]/g, '[$1, $2]') + '\n'
+}
+
+function loadPoseText(text, name) {
+  let data
+  try { data = JSON.parse(text) } catch (e) { setStatus('JSON として読めませんでした: ' + e.message, true); return false }
+  if (!data || !Array.isArray(data.keyframes) || !data.keyframes.length) { setStatus('pose.json の形式ではありません（keyframes がありません）', true); return false }
+  doc = data
+  doc.ground ??= 520
+  fileName = name || `${doc.id || 'pose'}.pose.json`
+  kfIndex = 0; selected = null; dirty = false; undoStack.length = 0; redoStack.length = 0
+  $('techId').textContent = doc.id || '（id なし）'
+  refreshAll()
+  setStatus(`${fileName} を開きました（kf ${doc.keyframes.length}）`)
+  return true
+}
+window.loadPoseText = loadPoseText
+
+function setStatus(msg, isError) { const s = $('status'); s.textContent = msg; s.style.color = isError ? '#b7282e' : '' }
+
+$('btnOpen').onclick = () => $('file').click()
+$('file').onchange = async e => { const f = e.target.files[0]; if (f) loadPoseText(await f.text(), f.name); e.target.value = '' }
+$('btnSave').onclick = () => {
+  const blob = new Blob([formatPose(doc)], { type: 'application/json' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob); a.download = fileName
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  dirty = false; updateButtons()
+  setStatus(`${fileName} をダウンロードしました。content/poses/ に上書きしてください`)
+}
+$('btnCopy').onclick = async () => {
+  const text = formatPose(doc)
+  try { await navigator.clipboard.writeText(text) } catch {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove()
+  }
+  setStatus('JSON をクリップボードにコピーしました')
+}
+for (const t of ['dragenter', 'dragover']) window.addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('on') })
+for (const t of ['dragleave', 'drop']) window.addEventListener(t, e => { e.preventDefault(); if (t === 'drop' || e.target === $('drop')) $('drop').classList.remove('on') })
+window.addEventListener('drop', async e => { const f = e.dataTransfer.files[0]; if (f) loadPoseText(await f.text(), f.name) })
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = '' } })
+
+// ---------- kf 操作 ----------
+$('kfSelect').onchange = e => { kfIndex = Number(e.target.value); selected = null; refreshAll() }
+$('btnAddKf').onclick = () => {
+  const base = currentKf()
+  const next = doc.keyframes[kfIndex + 1]
+  const at = next ? Math.round((base.at + next.at) / 2 * 100) / 100 : Math.min(1, Math.round((base.at + 0.1) * 100) / 100)
+  if (doc.keyframes.some(k => k.at === at)) { setStatus(`at=${at} は既にあります。先に at を調整してください`, true); return }
+  const id = prompt('新しい kf の id（英小文字。原稿にも同じ id を書く）', `${base.id}-2`)
+  if (!id) return
+  if (!/^[a-z][a-z0-9-]*$/.test(id) || doc.keyframes.some(k => k.id === id)) { setStatus('id は英小文字・数字・ハイフンで、重複しないもの', true); return }
+  pushUndo()
+  const kf = clone(base); kf.id = id; kf.at = at
+  doc.keyframes.push(kf)
+  doc.keyframes.sort((a, b) => a.at - b.at)
+  kfIndex = doc.keyframes.indexOf(kf)
+  refreshAll()
+  setStatus(`kf「${id}」（at=${at}）を追加しました。原稿 md にも追加してください`)
+}
+$('btnDelKf').onclick = () => {
+  const kf = currentKf()
+  if (!confirm(`kf「${kf.id}」を削除しますか？（原稿 md からも削除が必要）`)) return
+  pushUndo()
+  doc.keyframes.splice(kfIndex, 1)
+  kfIndex = Math.max(0, kfIndex - 1)
+  refreshAll()
+}
+$('kfId').onchange = e => {
+  const v = e.target.value.trim()
+  if (!/^[a-z][a-z0-9-]*$/.test(v) || doc.keyframes.some((k, i) => i !== kfIndex && k.id === v)) { setStatus('id は英小文字・数字・ハイフンで、重複しないもの', true); refreshKfBar(); return }
+  pushUndo(); currentKf().id = v; refreshAll()
+}
+$('kfAt').onchange = e => {
+  const v = Math.round(Number(e.target.value) * 1000) / 1000
+  if (!(v >= 0 && v <= 1)) { setStatus('at は 0〜1', true); refreshKfBar(); return }
+  pushUndo()
+  const kf = currentKf(); kf.at = v
+  doc.keyframes.sort((a, b) => a.at - b.at)
+  kfIndex = doc.keyframes.indexOf(kf)
+  refreshAll()
+}
+for (const name of EASES) { const o = document.createElement('option'); o.value = o.textContent = name; $('kfEase').appendChild(o) }
+$('kfEase').onchange = e => { pushUndo(); currentKf().ease = e.target.value; refreshAll() }
+
+// ---------- 向き・座標の直接入力 ----------
+function editRole() { return selected?.role ?? ($('roleSelect').value === 'uke' ? 'uke' : 'tori') }
+const numField = (id, key) => { $(id).onchange = e => { const v = rnd(Number(e.target.value)); if (!Number.isFinite(v)) return; pushUndo(); currentKf()[editRole()][key] = Math.max(-180, Math.min(180, v)); render(); refreshInspector(); validate() } }
+numField('headDir', 'head_dir'); numField('gaze', 'gaze'); numField('haraDir', 'hara_dir')
+$('faceR').onclick = () => { pushUndo(); currentKf()[editRole()].facing = 1; render(); refreshInspector(); validate() }
+$('faceL').onclick = () => { pushUndo(); currentKf()[editRole()].facing = -1; render(); refreshInspector(); validate() }
+for (const [id, axis] of [['selX', 0], ['selY', 1]]) $(id).onchange = e => {
+  if (!selected) return
+  const fig = currentKf()[selected.role]
+  const t = [...fig.joints[selected.joint]]; t[axis] = rnd(Number(e.target.value))
+  pushUndo(); moveJoint(fig, selected.joint, t, $('lock').checked ? 'lock' : 'free'); snap(fig); render(); refreshInspector(); validate()
+}
+$('ghost').onchange = () => render()
+$('roleSelect').onchange = () => { selected = null; render(); refreshInspector() }
+
+// ---------- ドラッグ ----------
+function svgPoint(evt) {
+  const pt = stage.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY
+  const p = pt.matrixTransform(stage.getScreenCTM().inverse())
+  return [p.x, p.y]
+}
+let drag = null
+stage.addEventListener('pointerdown', e => {
+  if (!doc || playing) return
+  const jg = e.target.closest('.joint'), hg = e.target.closest('.handle')
+  if (!jg && !hg) { selected = null; render(); refreshInspector(); return }
+  e.preventDefault()
+  try { stage.setPointerCapture(e.pointerId) } catch { /* 合成イベントなど、捕捉できない場合は無視 */ }
+  pushUndo()
+  if (jg) {
+    selected = { role: jg.dataset.role, joint: jg.dataset.joint }
+    drag = { kind: 'joint', ...selected }
+  } else {
+    drag = { kind: 'handle', role: hg.dataset.role, key: hg.dataset.handle }
+  }
+  render(); refreshInspector()
+})
+stage.addEventListener('pointermove', e => {
+  if (!drag) return
+  const p = svgPoint(e)
+  const fig = currentKf()[drag.role]
+  if (drag.kind === 'joint') {
+    const mode = e.altKey || !$('lock').checked ? 'free' : (e.ctrlKey && drag.joint === 'hip' ? 'plant' : 'lock')
+    moveJoint(fig, drag.joint, p, mode)
+    snap(fig)
+  } else {
+    const base = drag.key === 'hara_dir' ? fig.joints.hip : fig.joints.head
+    fig[drag.key] = angleOf(fig.facing, p[0] - base[0], p[1] - base[1])
+  }
+  render(); refreshInspector()
+})
+const endDrag = () => { if (drag) { drag = null; validate() } }
+stage.addEventListener('pointerup', endDrag)
+stage.addEventListener('pointercancel', endDrag)
+
+window.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return }
+  if (!selected || !doc || ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return
+  const step = e.shiftKey ? 10 : 1
+  const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key]
+  if (!d) return
+  e.preventDefault()
+  const fig = currentKf()[selected.role]
+  const t = [fig.joints[selected.joint][0] + d[0], fig.joints[selected.joint][1] + d[1]]
+  pushUndo(); moveJoint(fig, selected.joint, t, $('lock').checked ? 'lock' : 'free'); snap(fig); render(); refreshInspector(); validate()
+})
+$('btnUndo').onclick = undo
+$('btnRedo').onclick = redo
+
+// ---------- プレビュー再生（直線補間） ----------
+function lerp(a, b, t) { return a + (b - a) * t }
+function poseAt(t) {
+  const ks = doc.keyframes
+  if (t <= ks[0].at) return ks[0]
+  if (t >= ks[ks.length - 1].at) return ks[ks.length - 1]
+  const i = ks.findIndex((k, idx) => ks[idx + 1] && t >= k.at && t <= ks[idx + 1].at)
+  const a = ks[i], b = ks[i + 1], u = (t - a.at) / (b.at - a.at)
+  const mix = (fa, fb) => ({ facing: u < 1 ? fa.facing : fb.facing, head_dir: lerp(fa.head_dir, fb.head_dir, u), gaze: lerp(fa.gaze, fb.gaze, u), hara_dir: lerp(fa.hara_dir, fb.hara_dir, u), joints: Object.fromEntries(JOINTS.map(j => [j, [lerp(fa.joints[j][0], fb.joints[j][0], u), lerp(fa.joints[j][1], fb.joints[j][1], u)]])) })
+  return { tori: mix(a.tori, b.tori), uke: mix(a.uke, b.uke) }
+}
+$('btnPlay').onclick = () => {
+  if (playing) { cancelAnimationFrame(playing.raf); playing = null; $('btnPlay').textContent = 'プレビュー再生 ▶'; render(); return }
+  const dur = Number($('speed').value) * 1000
+  const start = performance.now()
+  $('btnPlay').textContent = '停止 ■'
+  const tick = now => {
+    const t = ((now - start) % (dur + 600)) / dur
+    render(poseAt(Math.min(1, t)))
+    playing.raf = requestAnimationFrame(tick)
+  }
+  playing = { raf: requestAnimationFrame(tick) }
+}
+
+render()
+updateButtons()
+</script>
+</body>
+</html>
