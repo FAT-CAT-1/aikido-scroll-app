@@ -368,12 +368,15 @@ export function parseTechnique({ file, rel, raw, type, renderer, diag }) {
 
       const sub = splitBy(g.nodes, 4)
       let overrides = /** @type {string[] | null} */ (null)
-      const descNodes = []
+      const descParts = []
       for (const n of sub.pre) {
-        const text = n.type === 'paragraph' ? slice(n) : ''
-        const om = text.match(/^overrides\s*:\s*\[([^\]]*)\]\s*$/)
-        if (om) overrides = om[1].split(',').map((s) => s.trim()).filter(Boolean)
-        else descNodes.push(n)
+        const text = slice(n)
+        // content-spec §2-2 の書式どおり、overrides 行の直後に空行なしで差分説明が続いてもよい
+        const om = n.type === 'paragraph' ? text.match(/^overrides\s*:\s*\[([^\]]*)\][ \t]*(?:\r?\n([\s\S]*))?$/) : null
+        if (om) {
+          overrides = om[1].split(',').map((s) => s.trim()).filter(Boolean)
+          if (om[2]?.trim()) descParts.push(om[2])
+        } else descParts.push(text)
       }
       if (!overrides) {
         diag.error(loc, `${w}: 「overrides: [kf id, …]」の行がありません`)
@@ -393,7 +396,7 @@ export function parseTechnique({ file, rel, raw, type, renderer, diag }) {
       attackOverrides[slug] = {
         label,
         overrides,
-        desc_html: renderBlocks(descNodes, `${w} 差分説明`),
+        desc_html: descParts.length ? collect(renderer.render(descParts.join('\n\n'), { loc, where: `${w} 差分説明`, sources })).html : '',
         keyframes: Object.fromEntries(kfs.map((k) => [k.id, k])),
       }
     }
