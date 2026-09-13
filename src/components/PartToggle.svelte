@@ -121,6 +121,11 @@
   h2 {
     font-size: var(--text-l);
   }
+  /* フォーカス移動で見出しまでスクロールしたとき、上部に留めた骨格（高さ≒幅×0.6）の下に隠れないようにする */
+  h2,
+  h3 {
+    scroll-margin-top: min(calc(60vw + 48px), 520px);
+  }
   h2:focus {
     outline: none;
   }

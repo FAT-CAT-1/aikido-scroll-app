@@ -3,11 +3,13 @@
   // 吹き出しは一時停止中だけ表示し、再生・スクロール中は消す（animation-spec §5-3）
   import { tick } from 'svelte'
   import Body from '../lib/anim/Body.svelte'
+  import { VIEW_H, VIEW_W, partAnchor } from '../lib/anim/geometry'
   import { BOTTOM_PARTS, TOP_PARTS, leaderLines, leaderPath, orderByX, readAnchors, type Anchors, type Leader } from '../lib/anim/markers'
   import type { ScenePose } from '../lib/anim/timeline'
   import type { Part, PartLevels, Role } from '../lib/content/types'
   import { PART_LABEL, PART_SHORT } from '../lib/content/types'
   import PartBubble from './PartBubble.svelte'
+  import Zoomable from './Zoomable.svelte'
 
   interface Props {
     scene: ScenePose
@@ -58,6 +60,17 @@
 
   const focusAnchor = $derived(focused && focusPart ? anchors[focusPart] : undefined)
 
+  // ---- ズーム（T19）: 開いている部位の起点を中心に、深さ1〜5で 1.2〜2.0 倍 ----
+  // 中心は DOM を測らずポーズから計算する（最初のフレームから正しい位置で拡大が始まる）。閉じた後も縮小し終えるまで中心を保つ
+  let origin = $state({ x: 50, y: 50 })
+  $effect.pre(() => {
+    if (!focused || !focusPart) return
+    const p = partAnchor(scene[view], focusPart, 'f')
+    const x = view === 'uke' ? VIEW_W - p[0] : p[0]
+    origin = { x: (x / VIEW_W) * 100, y: (p[1] / VIEW_H) * 100 }
+  })
+  const zoom = $derived(focused ? Math.min(2, 1 + 0.2 * depth) : 1)
+
   $effect(() => {
     if (!wrap) return
     const ro = new ResizeObserver(() => measure())
@@ -77,7 +90,9 @@
   </div>
 
   <div class="drawing">
-    <Body pose={scene} {view} {ground} {label} />
+    <Zoomable scale={zoom} originX={origin.x} originY={origin.y}>
+      <Body pose={scene} {view} {ground} {label} />
+    </Zoomable>
   </div>
 
   <div class="band bottom" aria-hidden={!paused}>
@@ -102,8 +117,8 @@
     <button
       type="button"
       class="focus-chip"
-      style:left="{focusAnchor.x}px"
-      style:top="{focusAnchor.y}px"
+      style:left="{Math.max(0, Math.min((wrap?.clientWidth ?? 9999) - 60, focusAnchor.x))}px"
+      style:top="{Math.max(56, focusAnchor.y)}px"
       aria-controls={toggleId}
       aria-expanded="true"
       onclick={() => focusPart && onselect(focusPart)}
