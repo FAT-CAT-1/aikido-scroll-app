@@ -30,7 +30,9 @@
     const d = open ? depth : 0
     if (d > 0 && d !== prevDepth) {
       const target = d === 1 || d < prevDepth ? `${id}-title` : `${id}-lv${d}`
-      tick().then(() => document.getElementById(target)?.focus({ preventScroll: d === 1 }))
+      // 開いた直後と、戻ってきて深さごと復元したとき（0 → d）は画面を動かさない（保存したスクロール位置を保つ）
+      const preventScroll = d === 1 || prevDepth === 0
+      tick().then(() => document.getElementById(target)?.focus({ preventScroll }))
     }
     prevDepth = d
   })

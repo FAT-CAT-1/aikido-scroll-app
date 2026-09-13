@@ -15,6 +15,8 @@ async function expectNoViolations(page: Page, label: string) {
 
 test.describe('axe（WCAG 2.2 AA）', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'axe は Chromium で1回だけ実行')
+  // precache 完了の通知が検査の途中（表示アニメーションの半透明な状態）に出ないよう、Service Worker は止める。通知は下の専用テストで確認
+  test.use({ serviceWorkers: 'block' })
 
   test('巻物トップ', async ({ page }) => {
     await page.goto('./#/')
@@ -49,6 +51,13 @@ test.describe('axe（WCAG 2.2 AA）', () => {
     await page.goto('./#/glossary/irimi')
     await expect(page.locator('#term-title')).toBeVisible()
     await expectNoViolations(page, '用語詳細')
+  })
+
+  test('更新・オフライン準備の通知', async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('aikido-sw-updated', '1'))
+    await page.goto('./#/')
+    await expect(page.locator('.toast')).toContainText('新しい版に更新しました')
+    await expectNoViolations(page, '通知')
   })
 
   test('reduced-motion の技詳細', async ({ browser }) => {

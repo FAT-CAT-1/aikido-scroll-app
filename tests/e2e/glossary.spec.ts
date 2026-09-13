@@ -12,12 +12,20 @@ test('用語リンク→単語集→戻るで、同じ視点・再生位置・�
   await expectDepth(page, 3)
 
   const term = page.locator('#part-toggle a.term').first()
-  await term.scrollIntoViewIfNeeded()
+  // 部位を開いている間は骨格の段が画面上部に留まる（sticky）。リンクが段のすぐ下に見える位置までスクロールしてから押す
+  await term.evaluate((el) => {
+    const stage = document.querySelector('.stage-block') as HTMLElement
+    const top = el.getBoundingClientRect().top + window.scrollY
+    window.scrollTo({ top: Math.max(0, top - stage.offsetHeight - 24), behavior: 'instant' })
+  })
   const scrollBefore = await page.evaluate(() => Math.round(window.scrollY))
+  expect(scrollBefore).toBeGreaterThan(0)
   const slider = page.getByRole('slider', { name: /技の再生位置/ })
   const at = await slider.getAttribute('aria-valuenow')
   const termName = (await term.textContent()) ?? ''
-  await term.click()
+  // 見えている位置をそのまま指で押す（locator.click は押す前に要素を見える位置へ寄せ直すことがあり、保存されるスクロール位置が変わる）
+  const box = (await term.boundingBox())!
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
 
   await expect(page).toHaveURL(/#\/glossary\//)
   await expect(page.locator('#term-title')).toBeVisible()

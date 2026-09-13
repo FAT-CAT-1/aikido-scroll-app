@@ -2,11 +2,21 @@ import { expect, type Page } from '@playwright/test'
 
 export const TECHNIQUE = 'ikkyo-omote'
 
-/** 技詳細を開いて、一時停止（吹き出し表示）まで待つ */
+/** 技詳細を開いて、一時停止（吹き出し表示）と Web フォントへの切り替えまで待つ */
 export async function openTechnique(page: Page, id = TECHNIQUE) {
   await page.goto(`./#/techniques/${id}`)
   await expect(page.locator('.stage.paused')).toBeVisible()
   await expect(page.locator('.bubble')).toHaveCount(6)
+  await waitForFonts(page)
+}
+
+/** Web フォントへの切り替え（src/lib/fonts.ts：初回は画面の表示後）が終わるまで待つ。操作の途中で字形が変わると要素の位置がずれる */
+export async function waitForFonts(page: Page) {
+  await page.waitForFunction(() => document.documentElement.classList.contains('fonts'))
+  await page.evaluate(async () => {
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    await document.fonts.ready
+  })
 }
 
 /** トグルの深さ（閉じていれば 0） */
