@@ -23,6 +23,7 @@
 | E2E（本番ビルド） | `npm run test:e2e`（開発サーバーで行うときは環境変数 `E2E_TARGET=dev`） |
 | a11y（axe） | `npm run test:a11y` |
 | 本番ビルドの確認 | `npm run build` → `npm run preview` |
+| 1ファイル版（HTML 1つ・サーバー不要） | `npm run build:single` → `dist-single/aikido-scroll-app.html`（Service Worker なし。docs/decisions.md D-35） |
 
 ## 原稿を直す・足す
 1. `content/techniques/*.md`・`content/glossary/*.md`・`content/pages/*.md` を編集する（書き方は `docs/content-spec.md`）。

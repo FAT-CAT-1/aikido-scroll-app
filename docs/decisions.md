@@ -40,3 +40,4 @@
 | D-32 | Web フォントの読み込み順（T31） | `html.fonts` が付くまで端末の明朝で表示。初回は画面と技データの表示後に付けて読み込み開始（font-display: swap で差し替え）。Service Worker の制御下（precache 済み）では HTML の段階で付け、最初から Web フォント | 3G で約1.8MB のフォントが JS・データより先に帯域を取らない。requirements「初回LCP < 2.5s（3G相当）」。2回目以降はちらつかない |
 | D-33 | Service Worker の登録時期（T31） | ページの読み込み完了後に登録（vite-plugin-pwa の既定） | precache（約2.3MB）の取得が初回表示と帯域を取り合わない |
 | D-34 | 生成物の一覧の分け方（T31、D-21 の追補） | `index.json`（起動時に読む）は技・基礎・章ページの一覧、単語集の語数、技が使う攻撃法の名前だけにする。単語集の一覧は `glossary-index.json` に分け、単語集・用語の画面のチャンクにだけ入れる | 単語集が214語になり、一覧データで入口 JS が 78KB→144KB に増えたため（分けた後 87KB） |
+| D-35 | 1ファイル版（ディレクター依頼「完成品をhtmlにして」） | `npm run build:single` で `dist-single/aikido-scroll-app.html`（画面・原稿・フォントを埋め込んだ HTML 1つ、約3.9MB）を作る。Service Worker・manifest は持たず、JS は1本（遅延読み込みなし）、Web フォントは最初から使う。公開版（`npm run build`）のコードと出力は変えない | サーバー無しで開ける・ファイルで渡せる形。オフラインの自動キャッシュとホーム画面追加は公開版で行う |

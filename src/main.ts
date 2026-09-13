@@ -17,6 +17,7 @@ const app = mount(App, {
 requestAnimationFrame(() => document.getElementById('splash')?.remove())
 setTimeout(() => document.getElementById('splash')?.remove(), 1500)
 
-setupPwa()
+// 1ファイル版（npm run build:single）は Service Worker を持たない
+if (import.meta.env.MODE !== 'single') setupPwa()
 
 export default app
