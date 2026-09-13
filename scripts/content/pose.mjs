@@ -23,8 +23,47 @@ export const GROUND = 520
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v)
 
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1])
+
 /**
- * 構造・kf 突合の検証（エラー）。骨長・地面などの警告は checkPoseWarnings（T14）。
+ * 形の妥当性の警告（animation-spec §3 制約・§10 警告、backlog T14）
+ * - 骨長: 標準骨長（_body.json）と、最初の kf からの変化がそれぞれ ±15% を超える
+ * - 関節が地面（ground）より下
+ * - 取りと受けの頭の距離が 60 未満（重なりすぎ）
+ * - hara_dir が体の正面（facing）から 90° 以上ずれている
+ * @param {{ rel: string, pose: any, body: any, diag: import('./diagnostics.mjs').Diagnostics }} args
+ */
+export function checkPoseWarnings({ rel, pose, body, diag }) {
+  const loc = `${rel}:1`
+  const segments = body?.segments ?? []
+  const first = pose.keyframes[0]
+  for (const kf of pose.keyframes) {
+    for (const role of ['tori', 'uke']) {
+      const who = `kf=${kf.id} ${role === 'tori' ? '取り' : '受け'}`
+      const j = kf[role].joints
+      for (const [a, b, boneKey] of segments) {
+        const len = dist(j[a], j[b])
+        const std = body.bones[boneKey]
+        if (std && Math.abs(len - std) / std > 0.15) {
+          diag.warn(loc, `${who}: 骨 ${a}–${b} が ${len.toFixed(0)}（標準 ${std} の ±15% 超）`)
+          continue
+        }
+        const base = dist(first[role].joints[a], first[role].joints[b])
+        if (base > 0 && Math.abs(len - base) / base > 0.15) {
+          diag.warn(loc, `${who}: 骨 ${a}–${b} が kf=${first.id} の ${base.toFixed(0)} から ${len.toFixed(0)} に変化（±15% 超・伸び縮み）`)
+        }
+      }
+      const below = JOINTS.filter((name) => j[name][1] > pose.ground)
+      if (below.length) diag.warn(loc, `${who}: 地面 y=${pose.ground} より下の関節 ${below.join(', ')}`)
+      if (Math.abs(kf[role].hara_dir) >= 90) diag.warn(loc, `${who}: hara_dir=${kf[role].hara_dir} が体の正面（facing）から 90° 以上ずれています`)
+    }
+    const headGap = dist(kf.tori.joints.head, kf.uke.joints.head)
+    if (headGap < 60) diag.warn(loc, `kf=${kf.id}: 取りと受けの頭の距離が ${headGap.toFixed(0)}（60 未満・重なりすぎ）`)
+  }
+}
+
+/**
+ * 構造・kf 突合の検証（エラー）。骨長・地面などの警告は checkPoseWarnings。
  * @param {{ rel: string, id: string, pose: any, technique: any | null, diag: import('./diagnostics.mjs').Diagnostics }} args
  */
 export function validatePose({ rel, id, pose, technique, diag }) {

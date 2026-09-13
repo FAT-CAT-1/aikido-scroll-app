@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url'
 import { Diagnostics } from './content/diagnostics.mjs'
 import { parseGlossary, parsePage } from './content/glossary.mjs'
 import { createRenderer } from './content/inline.mjs'
-import { validatePose } from './content/pose.mjs'
+import { checkPoseWarnings, validatePose } from './content/pose.mjs'
 import { parseTechnique, readFrontmatter, toArray } from './content/technique.mjs'
 
 const DEFAULT_ROOT = path.resolve(import.meta.dirname, '..')
@@ -93,6 +93,9 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   }
 
   const poses = []
+  const bodyFile = path.join(contentDir, 'poses', '_body.json')
+  const body = existsSync(bodyFile) ? JSON.parse(await readFile(bodyFile, 'utf8')) : null
+  if (poseFiles.length && !body) diag.warn('content/poses/_body.json:1', '標準骨長 _body.json がありません（骨長チェックを省略）')
   for (const file of poseFiles) {
     const id = path.basename(file, '.pose.json')
     let pose
@@ -102,7 +105,10 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
       diag.error(`${rel(file)}:1`, `JSON として読めません: ${/** @type {Error} */ (e).message}`)
       continue
     }
-    if (validatePose({ rel: rel(file), id, pose, technique: byId.get(id) ?? null, diag })) poses.push(pose)
+    if (validatePose({ rel: rel(file), id, pose, technique: byId.get(id) ?? null, diag })) {
+      checkPoseWarnings({ rel: rel(file), pose, body, diag })
+      poses.push(pose)
+    }
   }
   const poseIds = new Set(poses.map((p) => p.id))
   for (const t of techniques) if (!poseIds.has(t.id)) diag.warn(`content/techniques/${t.id}.md:1`, 'pose.json がありません（アニメなしで表示）')
