@@ -43,7 +43,8 @@
         <span class="role">{ROLE_LABEL[role]}</span>の<span class="part">{PART_LABEL[part]}</span>
         <small class="kf">— {kfLabel}</small>
       </h2>
-      <p class="depth-meter" aria-label="詳しさ {depth}／5">
+      <p class="depth-meter">
+        <span class="visually-hidden">詳しさ {depth}／5</span>
         {#each [1, 2, 3, 4, 5] as n (n)}<span class="dot" class:on={n <= depth} aria-hidden="true"></span>{/each}
       </p>
     </header>

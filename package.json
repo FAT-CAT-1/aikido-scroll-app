@@ -14,7 +14,9 @@
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "build:content": "node scripts/build-content.mjs",
     "fonts": "node scripts/subset-fonts.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test tests/e2e/a11y.spec.ts --project=pixel-chromium"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -48,7 +48,10 @@ export function hrefOf(route: Route): string {
 }
 
 class Router {
-  readonly route = $derived<Route>(parseHash(nav.state.path))
+  // history の状態はトグルの開閉でも毎回新しいオブジェクトになるので、path の文字列が変わったときだけルートを作り直す。
+  // （ルートを直接派生させると、同じ画面でもトグル開閉のたびに画面が作り直され、読み込みやフォーカスがやり直しになる）
+  private readonly path = $derived(nav.state.path)
+  readonly route = $derived<Route>(parseHash(this.path))
 }
 
 export const router = new Router()

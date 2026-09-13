@@ -24,3 +24,7 @@ Thumbs.db
 
 # 第三者動画の文字起こし全文（公開リポジトリでは再配布しない。ローカル保持）
 docs/references/*.txt
+
+# Playwright
+/blob-report/
+/playwright/.cache/
