@@ -26,10 +26,12 @@
   --trust-general: var(--sumi-juu);
   --trust-shihan: var(--shu);
 
-  /* ---- タイポ（B-4-3） ---- */
-  --font-heading: 'Yuji Syuku', 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-  --font-body: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-  --font-sub: 'Zen Old Mincho', 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  /* ---- タイポ（B-4-3） ----
+   * Web フォントは html.fonts が付いてから使う（src/lib/fonts.ts）。付くまでは端末の明朝で表示する */
+  --font-fallback: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', 'Noto Serif CJK JP', 'Noto Serif JP', serif;
+  --font-heading: var(--font-fallback);
+  --font-body: var(--font-fallback);
+  --font-sub: var(--font-fallback);
   --text-xs: 0.8125rem; /* 13px: 吹き出し・注記のみ */
   --text-s: 0.875rem; /* 14px */
   --text-m: 1rem; /* 16px: 本文の最小 */
@@ -62,6 +64,13 @@
   --dur-zoom: 0.45s;
   --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-in: cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+
+/* Web フォント（public/fonts のサブセット）に切り替える。font-display: swap で読み込めた書体から差し替わる */
+:root.fonts {
+  --font-heading: 'Yuji Syuku', 'Shippori Mincho', var(--font-fallback);
+  --font-body: 'Shippori Mincho', var(--font-fallback);
+  --font-sub: 'Zen Old Mincho', 'Shippori Mincho', var(--font-fallback);
 }
 
 @media (prefers-reduced-motion: reduce) {

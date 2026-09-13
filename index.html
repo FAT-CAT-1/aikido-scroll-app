@@ -16,9 +16,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="合氣道" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="preload" href="%BASE_URL%fonts/yuji-syuku-400.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Service Worker が制御している＝フォントも precache 済み。最初から Web フォントで表示する（src/lib/fonts.ts） -->
+    <script>
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) document.documentElement.classList.add('fonts')
+    </script>
+    <!-- 表紙（アプリの読み込み前に HTML だけで表示する。アプリが描画したら main.ts が取り除く） -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #efe8d8;
+      }
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: #efe8d8;
+        z-index: 100;
+      }
+      #splash p {
+        margin: 0;
+        writing-mode: vertical-rl;
+        font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', 'Noto Serif CJK JP', 'Noto Serif JP', serif;
+        font-size: clamp(4rem, 24vw, 9rem);
+        letter-spacing: 0.2em;
+        color: #1a1a1a;
+      }
+      .fonts #splash p {
+        font-family: 'Yuji Syuku', 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true"><p>合氣道</p></div>
     <div id="app"></div>
     <noscript>このアプリは JavaScript を有効にしてご利用ください。</noscript>
     <script type="module" src="/src/main.ts"></script>

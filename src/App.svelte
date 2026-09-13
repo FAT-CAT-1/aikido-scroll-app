@@ -1,34 +1,37 @@
 <script lang="ts">
-  import GlossaryList from './components/GlossaryList.svelte'
   import HomeView from './components/HomeView.svelte'
+  import Lazy from './components/Lazy.svelte'
   import PageHeader from './components/PageHeader.svelte'
-  import PageView from './components/PageView.svelte'
-  import TechniqueList from './components/TechniqueList.svelte'
-  import TechniqueView from './components/TechniqueView.svelte'
-  import TermView from './components/TermView.svelte'
   import UpdateToast from './components/UpdateToast.svelte'
   import { router } from './lib/router.svelte'
+
+  // 表紙以外の画面は開いたときに読み込む（技詳細は GSAP を含むので特に大きい）
+  const loadTechnique = () => import('./components/TechniqueView.svelte')
+  const loadTechniqueList = () => import('./components/TechniqueList.svelte')
+  const loadGlossary = () => import('./components/GlossaryList.svelte')
+  const loadTerm = () => import('./components/TermView.svelte')
+  const loadPage = () => import('./components/PageView.svelte')
 </script>
 
 <UpdateToast />
 
 {#if router.route.name === 'technique'}
   {#key router.route.id}
-    <TechniqueView id={router.route.id} kind={router.route.kind} />
+    <Lazy load={loadTechnique} props={{ id: router.route.id, kind: router.route.kind }} />
   {/key}
 {:else if router.route.name === 'techniques'}
   {#key router.route.kind}
-    <TechniqueList kind={router.route.kind} />
+    <Lazy load={loadTechniqueList} props={{ kind: router.route.kind }} />
   {/key}
 {:else if router.route.name === 'term'}
   {#key router.route.id}
-    <TermView id={router.route.id} />
+    <Lazy load={loadTerm} props={{ id: router.route.id }} />
   {/key}
 {:else if router.route.name === 'glossary'}
-  <GlossaryList />
+  <Lazy load={loadGlossary} props={{}} />
 {:else if router.route.name === 'page'}
   {#key router.route.id}
-    <PageView id={router.route.id} />
+    <Lazy load={loadPage} props={{ id: router.route.id }} />
   {/key}
 {:else if router.route.name === 'home'}
   <HomeView />

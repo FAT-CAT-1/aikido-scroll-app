@@ -58,8 +58,8 @@ export function setupPwa() {
     }
   })
 
+  // 登録はページの読み込み完了後（既定）。precache（約2.3MB）の取得が初回表示の JS・データと帯域を取り合わないようにする
   registerSW({
-    immediate: true,
     onOfflineReady() {
       if (store?.getItem(OFFLINE_READY_KEY)) return
       store?.setItem(OFFLINE_READY_KEY, '1')

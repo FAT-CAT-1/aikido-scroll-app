@@ -16,6 +16,7 @@
   import { createPoseTimeline, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
   import type { PinchDirection } from '../lib/gesture/pinch'
   import { nav } from '../lib/history/nav.svelte'
+  import { holdFonts } from '../lib/fonts'
   import { keyframeFor, nearestIndex } from '../lib/content/keyframe'
   import { contentIndex, loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
   import type { Part, PoseData, Role, Technique } from '../lib/content/types'
@@ -61,22 +62,25 @@
   $effect(() => {
     let cancelled = false
     loading = true
-    Promise.all([kind === 'kihon' ? loadKihon(id) : loadTechnique(id), loadPose(id)]).then(async ([t, p]) => {
-      if (cancelled) return
-      technique = t
-      poseData = p
-      attack = restore?.attack && t?.attacks.includes(restore.attack) ? restore.attack : (t?.default_attack ?? null)
-      timeline?.destroy()
-      timeline = p ? createPoseTimeline(p) : null
-      scene = timeline ? timeline.seek(progress) : null
-      loading = false
-      if (restore) {
+    // 技データを表示するまで Web フォントの読み込みを待たせる（lib/fonts.ts）
+    const releaseFonts = holdFonts()
+    Promise.all([kind === 'kihon' ? loadKihon(id) : loadTechnique(id), loadPose(id)])
+      .then(async ([t, p]) => {
+        if (cancelled) return
+        technique = t
+        poseData = p
+        attack = restore?.attack && t?.attacks.includes(restore.attack) ? restore.attack : (t?.default_attack ?? null)
+        timeline?.destroy()
+        timeline = p ? createPoseTimeline(p) : null
+        scene = timeline ? timeline.seek(progress) : null
+        loading = false
         await tick()
-        window.scrollTo({ top: restore.scrollY, behavior: 'instant' })
-      }
-    })
+        if (restore) window.scrollTo({ top: restore.scrollY, behavior: 'instant' })
+      })
+      .finally(() => setTimeout(releaseFonts, 0))
     return () => {
       cancelled = true
+      releaseFonts()
       stopPlaying()
       timeline?.destroy()
       timeline = null
