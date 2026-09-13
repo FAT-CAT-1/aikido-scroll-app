@@ -1,6 +1,7 @@
 <script lang="ts">
-  // 技詳細（S-03）。T12 時点：pose.json の最初の kf で取り・受け2体を静止表示する
+  // 技詳細（S-03）。T13 時点：pose.json から Timeline を作り、スライダーで 0〜1 を動かすと補間される
   import Body from '../lib/anim/Body.svelte'
+  import { createPoseTimeline, nearestKeyframeIndex, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
   import { loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
   import type { PoseData, Technique } from '../lib/content/types'
 
@@ -12,7 +13,10 @@
 
   let technique = $state.raw<Technique | null>(null)
   let poseData = $state.raw<PoseData | null>(null)
+  let scene = $state.raw<ScenePose | null>(null)
+  let progress = $state(0)
   let loading = $state(true)
+  let timeline: PoseTimeline | null = null
 
   $effect(() => {
     let cancelled = false
@@ -21,14 +25,25 @@
       if (cancelled) return
       technique = t
       poseData = p
+      timeline?.destroy()
+      timeline = p ? createPoseTimeline(p) : null
+      scene = timeline ? timeline.seek(progress) : null
       loading = false
     })
     return () => {
       cancelled = true
+      timeline?.destroy()
+      timeline = null
     }
   })
 
-  const first = $derived(poseData?.keyframes[0] ?? null)
+  const kfIndex = $derived(poseData ? nearestKeyframeIndex(poseData.keyframes, progress) : 0)
+  const kfLabel = $derived(technique?.keyframes[kfIndex]?.label ?? poseData?.keyframes[kfIndex]?.id ?? '')
+
+  function onScrub(e: Event) {
+    progress = Number((e.currentTarget as HTMLInputElement).value)
+    if (timeline) scene = timeline.seek(progress)
+  }
 </script>
 
 <article class="technique">
@@ -39,12 +54,17 @@
 
   {#if loading}
     <p class="note">読み込み中…</p>
-  {:else if !first}
+  {:else if !scene}
     <p class="note">この技のアニメーション（pose.json）はまだありません。</p>
   {:else}
     <div class="stage">
-      <Body pose={first} ground={poseData?.ground} label={`${technique?.name_ja ?? id}の取りと受け`} />
+      <Body pose={scene} ground={poseData?.ground} label={`${technique?.name_ja ?? id}の取りと受けの動き`} />
     </div>
+    <label class="scrub">
+      <span class="visually-hidden">再生位置</span>
+      <input type="range" min="0" max="1" step="0.001" value={progress} oninput={onScrub} aria-valuetext={`${Math.round(progress * 100)}%（${kfLabel}）`} />
+    </label>
+    <p class="kf">位置 {progress.toFixed(3)} ／ 最寄りのキーフレーム：{kfLabel}</p>
   {/if}
 </article>
 
@@ -69,6 +89,10 @@
     aspect-ratio: 1000 / 600;
     width: 100%;
   }
+  .scrub input {
+    width: 100%;
+  }
+  .kf,
   .note {
     font-size: var(--text-s);
     color: var(--sumi-juu);
