@@ -13,7 +13,7 @@
 //   unresolved-terms.txt       未解決の [[用語]]（ある場合のみ）
 
 import { existsSync } from 'node:fs'
-import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Diagnostics } from './content/diagnostics.mjs'
@@ -168,14 +168,17 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   const unresolved = [...new Set(diag.items.filter((i) => i.msg.includes('未解決の用語')).map((i) => i.msg.match(/\[\[(.+?)\]\]/)?.[1]))].filter(Boolean)
   if (unresolved.length) put('unresolved-terms.txt', unresolved.join('\n') + '\n')
 
-  // 変更があったファイルだけ書く（dev サーバーの無駄な再読込を避ける）。古い生成物は削除
+  // 変更があったファイルだけ書く（dev サーバーの無駄な再読込を避ける）。書きかけを読まれないよう一時ファイル→rename。古い生成物は削除
   for (const [file, content] of outputs) {
     await mkdir(path.dirname(file), { recursive: true })
     const prev = existsSync(file) ? await readFile(file, 'utf8') : null
-    if (prev !== content) await writeFile(file, content)
+    if (prev === content) continue
+    const tmp = `${file}.${process.pid}.tmp`
+    await writeFile(tmp, content)
+    await rename(tmp, file)
   }
   for (const file of await walk(outDir, '')) {
-    if (!outputs.has(file)) await rm(file)
+    if (!outputs.has(file) && !file.endsWith('.tmp')) await rm(file, { force: true })
   }
 
   if (!quiet || diag.errorCount || diag.warnCount) diag.print({ log })
