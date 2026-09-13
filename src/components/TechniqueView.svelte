@@ -2,7 +2,8 @@
   // 技詳細（S-03）
   // - pose.json から Timeline を作り、進捗 0〜1 で補間表示（T13）
   // - 視点切替：取り／受けタブで反転＋レイヤー入替＋濃淡。切替時も進捗を保つ（T15）
-  // - 一時停止で注目側6部位の l1 吹き出し（T16）。T25 までは「スライダー操作が 300ms 止まったら一時停止」
+  // - 一時停止で注目側6部位の l1 吹き出し（T16）
+  // - 技の巻物ストリップの横スクロール量＝進捗。指を止めて 300ms で一時停止（T25）
   // - 現在 kf（|progress − at| 最小）の解説へ切替。攻撃法を選ぶと差分 kf で丸ごと置換（T17）
   // - 吹き出しタップで深層トグル（l1→l5）。同じ部位をもう一度で1段深く、Esc／一段閉じるで1段戻る（T18）
   // - アニメ領域のピンチ：開く＝中点に最も近い部位を開く／1段深く、閉じる＝1段閉じる（T21）
@@ -16,6 +17,7 @@
   import { contentIndex, loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
   import type { Part, PoseData, Role, Technique } from '../lib/content/types'
   import PartToggle from './PartToggle.svelte'
+  import ScrubStrip from './ScrubStrip.svelte'
   import StatusBadge from './StatusBadge.svelte'
   import TechniqueStage from './TechniqueStage.svelte'
   import ViewTabs from './ViewTabs.svelte'
@@ -27,7 +29,6 @@
   let { id, kind = 'technique' }: Props = $props()
 
   const TOGGLE_ID = 'part-toggle'
-  const IDLE_MS = 300
 
   interface Snapshot {
     id: string
@@ -52,7 +53,6 @@
   let paused = $state(true)
   let loading = $state(true)
   let timeline: PoseTimeline | null = null
-  let idleTimer: ReturnType<typeof setTimeout> | undefined
 
   $effect(() => {
     let cancelled = false
@@ -73,7 +73,6 @@
     })
     return () => {
       cancelled = true
-      clearTimeout(idleTimer)
       timeline?.destroy()
       timeline = null
     }
@@ -94,14 +93,20 @@
   const glossaryName = (slug: string) => contentIndex.glossary.find((g) => g.id === slug)?.name_ja
   const attackName = (slug: string) => technique?.attack_overrides[slug]?.label ?? glossaryName(slug) ?? slug
 
-  function onScrub(e: Event) {
-    progress = Number((e.currentTarget as HTMLInputElement).value)
-    if (timeline) scene = timeline.seek(progress)
+  // ---- 巻物ストリップとの同期（ScrollDriven → 300ms 停止で Paused） ----
+  function seekTo(p: number) {
+    progress = p
+    if (timeline) scene = timeline.seek(p)
+  }
+  function onScrub(p: number) {
+    seekTo(p)
     paused = false
     if (nav.state.toggle) nav.stack.closeAll()
-    clearTimeout(idleTimer)
-    idleTimer = setTimeout(() => (paused = true), IDLE_MS)
   }
+  function onIdle() {
+    paused = true
+  }
+  const stripKeyframes = $derived(kfList.map((k) => ({ id: k.id, label: 'label' in k ? k.label : k.id, at: k.at })))
 
   // ---- 深層トグル：状態は history（nav.state.toggle）が正 ----
   const toggle = $derived(nav.state.path === hrefOfThis() && nav.state.toggle?.role === view ? nav.state.toggle : null)
@@ -214,10 +219,14 @@
       oncloseone={closeOne}
     />
 
-    <label class="scrub">
-      <span class="visually-hidden">再生位置</span>
-      <input type="range" min="0" max="1" step="0.001" value={progress} oninput={onScrub} aria-valuetext={`${Math.round(progress * 100)}%（${kfLabel}）`} />
-    </label>
+    <ScrubStrip
+      keyframes={stripKeyframes}
+      {progress}
+      label="技の再生位置（巻物）"
+      valueText={`${Math.round(progress * 100)}%・${kfLabel}`}
+      onscrub={onScrub}
+      onidle={onIdle}
+    />
 
     <section class="kf-info" aria-live="polite" aria-atomic="true">
       <h2 class="kf-name">
@@ -293,9 +302,6 @@
     z-index: 2;
     background: var(--washi);
     padding-top: var(--space-1);
-  }
-  .scrub input {
-    width: 100%;
   }
   .kf-info {
     margin-top: var(--space-2);
