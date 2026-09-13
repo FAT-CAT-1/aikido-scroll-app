@@ -110,7 +110,8 @@ export function validatePose({ rel, id, pose, technique, diag }) {
   const onlyMd = mdKfs.filter((k) => !poseKfs.includes(k))
   const onlyPose = poseKfs.filter((k) => !mdKfs.includes(k))
   if (onlyMd.length || onlyPose.length || mdKfs.join() !== poseKfs.join()) {
-    err(`原稿と kf id/at が一致しません（原稿のみ: ${onlyMd.join(' ') || 'なし'} ／ pose のみ: ${onlyPose.join(' ') || 'なし'}）`)
+    // エラーとして報告する（CI は失敗）が、構造が正しければ pose は出力し、執筆途中でもアニメは確認できるようにする
+    diag.error(loc, `原稿と kf id/at が一致しません（原稿のみ: ${onlyMd.join(' ') || 'なし'} ／ pose のみ: ${onlyPose.join(' ') || 'なし'}）`)
   }
   return ok
 }
