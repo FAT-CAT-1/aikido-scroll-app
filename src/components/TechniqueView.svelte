@@ -6,8 +6,12 @@
   // - 現在 kf（|progress − at| 最小）の解説へ切替。攻撃法を選ぶと差分 kf で丸ごと置換（T17）
   // - 吹き出しタップで深層トグル（l1→l5）。同じ部位をもう一度で1段深く、Esc／一段閉じるで1段戻る（T18）
   // - アニメ領域のピンチ：開く＝中点に最も近い部位を開く／1段深く、閉じる＝1段閉じる（T21）
+  // - トグルの深さは history と同期：開くたび pushState、戻るボタンで1段ずつ閉じる、画面の「閉じる」は history.back()（T22）
+  //   用語リンクで離れて戻ったときは、保存しておいた進捗・視点・スクロールとトグルの深さを復元する
+  import { tick } from 'svelte'
   import { createPoseTimeline, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
   import type { PinchDirection } from '../lib/gesture/pinch'
+  import { nav } from '../lib/history/nav.svelte'
   import { keyframeFor, nearestIndex } from '../lib/content/keyframe'
   import { contentIndex, loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
   import type { Part, PoseData, Role, Technique } from '../lib/content/types'
@@ -25,14 +29,27 @@
   const TOGGLE_ID = 'part-toggle'
   const IDLE_MS = 300
 
+  interface Snapshot {
+    id: string
+    progress: number
+    view: Role
+    attack: string | null
+    scrollY: number
+  }
+  // 戻ってきたときの復元（このエントリに保存された同じ技の状態）。App が技 id ごとに作り直すので、作成時に一度だけ読む
+  function readRestore(): Snapshot | null {
+    const saved = nav.state.snap.technique as Snapshot | undefined
+    return saved && saved.id === id ? saved : null
+  }
+  const restore = readRestore()
+
   let technique = $state.raw<Technique | null>(null)
   let poseData = $state.raw<PoseData | null>(null)
   let scene = $state.raw<ScenePose | null>(null)
-  let progress = $state(0)
-  let view = $state<Role>('tori')
+  let progress = $state(restore?.progress ?? 0)
+  let view = $state<Role>(restore?.view ?? nav.state.toggle?.role ?? 'tori')
   let attack = $state<string | null>(null)
   let paused = $state(true)
-  let toggle = $state<{ part: Part; depth: number } | null>(null)
   let loading = $state(true)
   let timeline: PoseTimeline | null = null
   let idleTimer: ReturnType<typeof setTimeout> | undefined
@@ -40,15 +57,19 @@
   $effect(() => {
     let cancelled = false
     loading = true
-    Promise.all([kind === 'kihon' ? loadKihon(id) : loadTechnique(id), loadPose(id)]).then(([t, p]) => {
+    Promise.all([kind === 'kihon' ? loadKihon(id) : loadTechnique(id), loadPose(id)]).then(async ([t, p]) => {
       if (cancelled) return
       technique = t
       poseData = p
-      attack = t?.default_attack ?? null
+      attack = restore?.attack && t?.attacks.includes(restore.attack) ? restore.attack : (t?.default_attack ?? null)
       timeline?.destroy()
       timeline = p ? createPoseTimeline(p) : null
       scene = timeline ? timeline.seek(progress) : null
       loading = false
+      if (restore) {
+        await tick()
+        window.scrollTo({ top: restore.scrollY, behavior: 'instant' })
+      }
     })
     return () => {
       cancelled = true
@@ -57,6 +78,9 @@
       timeline = null
     }
   })
+
+  // 画面遷移（用語リンクなど）の直前と、トグルを開くときに今の状態を history に保存する
+  $effect(() => nav.stack.registerSnapshot('technique', (): Record<string, unknown> => ({ id, progress, view, attack, scrollY: Math.round(window.scrollY) }) satisfies Snapshot))
 
   // kf の並びは原稿を正とし、原稿が無ければ pose の kf を使う
   const kfList = $derived(technique?.keyframes ?? poseData?.keyframes ?? [])
@@ -74,40 +98,52 @@
     progress = Number((e.currentTarget as HTMLInputElement).value)
     if (timeline) scene = timeline.seek(progress)
     paused = false
-    toggle = null
+    if (nav.state.toggle) nav.stack.closeAll()
     clearTimeout(idleTimer)
     idleTimer = setTimeout(() => (paused = true), IDLE_MS)
   }
 
-  // ---- 深層トグル（T22 で history と同期する） ----
+  // ---- 深層トグル：状態は history（nav.state.toggle）が正 ----
+  const toggle = $derived(nav.state.path === hrefOfThis() && nav.state.toggle?.role === view ? nav.state.toggle : null)
+  function hrefOfThis() {
+    return `#/${kind === 'kihon' ? 'kihon' : 'techniques'}/${id}`
+  }
+
   function onSelectPart(part: Part) {
-    if (!paused) return
-    if (toggle?.part === part) deepen()
-    else toggle = { part, depth: 1 }
+    if (!paused || !kf) return
+    if (!toggle) nav.stack.open(view, part, kf.id)
+    else if (toggle.part === part) nav.stack.deepen()
   }
   function deepen() {
-    if (toggle && toggle.depth < 5) toggle = { ...toggle, depth: toggle.depth + 1 }
+    nav.stack.deepen()
   }
   function closeOne() {
-    if (!toggle) return
-    const part = toggle.part
-    toggle = toggle.depth > 1 ? { ...toggle, depth: toggle.depth - 1 } : null
-    // すべて閉じたら、開く元になった吹き出しへフォーカスを戻す
-    if (!toggle) queueMicrotask(() => (document.querySelector(`.bubble[data-part="${part}"]`) as HTMLElement | null)?.focus())
+    nav.stack.closeOne()
   }
   function onPinch(direction: PinchDirection, part: Part | null) {
     if (direction === 'in') {
       closeOne()
       return
     }
-    if (!paused) return
-    if (toggle) deepen()
-    else if (part) toggle = { part, depth: 1 }
+    if (!paused || !kf) return
+    if (toggle) nav.stack.deepen()
+    else if (part) nav.stack.open(view, part, kf.id)
   }
   function changeView(v: Role) {
-    toggle = null
+    if (nav.state.toggle) nav.stack.closeAll()
     view = v
   }
+
+  // すべて閉じたら（戻るボタンでも）、開く元になった吹き出しへフォーカスを戻す
+  let lastPart: Part | null = null
+  $effect(() => {
+    const part = toggle?.part ?? null
+    if (lastPart && !part) {
+      const target = lastPart
+      tick().then(() => (document.querySelector(`.bubble[data-part="${target}"]`) as HTMLElement | null)?.focus({ preventScroll: true }))
+    }
+    lastPart = part
+  })
   function onWindowKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && toggle) {
       e.preventDefault()

@@ -1,8 +1,10 @@
-// hash ルート（design-complete A-8）: #/, #/techniques, #/techniques/:id, #/kihon/:id, #/glossary, #/glossary/:slug, #/pages/:name
+// hash ルート（design-complete A-8）: #/, #/techniques, #/techniques/:id, #/kihon, #/kihon/:id, #/glossary, #/glossary/:slug, #/pages/:name
+// 現在のルートは history の状態（nav.state.path）から決める（T22）
+import { nav } from './history/nav.svelte'
 
 export type Route =
   | { name: 'home' }
-  | { name: 'techniques' }
+  | { name: 'techniques'; kind: 'technique' | 'kihon' }
   | { name: 'technique'; id: string; kind: 'technique' | 'kihon' }
   | { name: 'glossary' }
   | { name: 'term'; id: string }
@@ -19,8 +21,8 @@ export function parseHash(hash: string): Route {
   const seg = path.split('?')[0]!.split('/').filter(Boolean)
   const [head, id] = seg
   if (!head) return { name: 'home' }
-  if (head === 'techniques') return id ? { name: 'technique', id, kind: 'technique' } : { name: 'techniques' }
-  if (head === 'kihon') return id ? { name: 'technique', id, kind: 'kihon' } : { name: 'techniques' }
+  if (head === 'techniques') return id ? { name: 'technique', id, kind: 'technique' } : { name: 'techniques', kind: 'technique' }
+  if (head === 'kihon') return id ? { name: 'technique', id, kind: 'kihon' } : { name: 'techniques', kind: 'kihon' }
   if (head === 'glossary') return id ? { name: 'term', id } : { name: 'glossary' }
   if (head === 'pages' && id) return { name: 'page', id }
   return { name: 'notfound', path }
@@ -31,7 +33,7 @@ export function hrefOf(route: Route): string {
     case 'home':
       return '#/'
     case 'techniques':
-      return '#/techniques'
+      return route.kind === 'kihon' ? '#/kihon' : '#/techniques'
     case 'technique':
       return `#/${route.kind === 'kihon' ? 'kihon' : 'techniques'}/${route.id}`
     case 'glossary':
@@ -46,16 +48,7 @@ export function hrefOf(route: Route): string {
 }
 
 class Router {
-  route = $state<Route>(parseHash(location.hash))
-
-  constructor() {
-    const sync = () => {
-      const next = parseHash(location.hash)
-      if (hrefOf(next) !== hrefOf(this.route)) this.route = next
-    }
-    addEventListener('hashchange', sync)
-    addEventListener('popstate', sync)
-  }
+  readonly route = $derived<Route>(parseHash(nav.state.path))
 }
 
 export const router = new Router()
