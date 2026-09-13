@@ -1,0 +1,76 @@
+/*
+ * build:content が出力する HTML（{@html} で差し込む）の共通スタイル
+ * 信頼マーク（content-spec §2-5 / design-complete B-5）：色＋色以外の手掛かり（文末の小さな印）
+ *   t-f 事実（焦墨・「事」）／t-g 一般的な指導（重・印なし）／t-v 師範・会派により異なる（朱・「師」）
+ *   無印の色は docs/decisions.md D-06
+ */
+.t-g {
+  color: var(--trust-general);
+}
+.t-f {
+  color: var(--trust-fact);
+}
+.t-v {
+  color: var(--trust-shihan);
+}
+.t-f::after,
+.t-v::after {
+  display: inline-block;
+  margin: 0 0.15em 0 0.1em;
+  padding: 0 0.2em;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-family: var(--font-heading);
+  font-size: 0.62em;
+  line-height: 1.35;
+  vertical-align: 0.35em;
+}
+.t-f::after {
+  content: '事';
+  content: '事' / '（事実）';
+}
+.t-v::after {
+  content: '師';
+  content: '師' / '（師範・会派により異なる）';
+}
+
+/* 用語リンク：朱の下点線（傍点風）。B-5 */
+a.term {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--shu);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.28em;
+}
+a.term:visited {
+  text-decoration-style: dashed;
+}
+a.term:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* 出典表記 */
+.src {
+  font-family: var(--font-sub);
+  font-size: 0.8em;
+  color: var(--sumi-juu);
+}
+.src a {
+  color: inherit;
+}
+
+.term-unresolved {
+  text-decoration: underline wavy var(--sumi-sei);
+}
+
+/* 信頼マークの凡例 */
+.trust-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--sumi-juu);
+}

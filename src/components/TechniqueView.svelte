@@ -3,9 +3,12 @@
   // - pose.json から Timeline を作り、進捗 0〜1 で補間表示（T13）
   // - 視点切替：取り／受けタブで反転＋レイヤー入替＋濃淡。切替時も進捗を保つ（T15）
   // - 一時停止で注目側6部位の l1 吹き出し（T16）。T25 までは「スライダー操作が 300ms 止まったら一時停止」
-  import { createPoseTimeline, nearestKeyframeIndex, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
-  import { loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
+  // - 現在 kf（|progress − at| 最小）の解説へ切替。攻撃法を選ぶと差分 kf で丸ごと置換（T17）
+  import { createPoseTimeline, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
+  import { keyframeFor, nearestIndex } from '../lib/content/keyframe'
+  import { contentIndex, loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
   import type { Part, PoseData, Role, Technique } from '../lib/content/types'
+  import StatusBadge from './StatusBadge.svelte'
   import TechniqueStage from './TechniqueStage.svelte'
   import ViewTabs from './ViewTabs.svelte'
 
@@ -23,6 +26,7 @@
   let scene = $state.raw<ScenePose | null>(null)
   let progress = $state(0)
   let view = $state<Role>('tori')
+  let attack = $state<string | null>(null)
   let paused = $state(true)
   let loading = $state(true)
   let timeline: PoseTimeline | null = null
@@ -35,6 +39,7 @@
       if (cancelled) return
       technique = t
       poseData = p
+      attack = t?.default_attack ?? null
       timeline?.destroy()
       timeline = p ? createPoseTimeline(p) : null
       scene = timeline ? timeline.seek(progress) : null
@@ -48,10 +53,17 @@
     }
   })
 
-  const kfIndex = $derived(poseData ? nearestKeyframeIndex(poseData.keyframes, progress) : 0)
-  const kf = $derived(technique?.keyframes[kfIndex] ?? null)
+  // kf の並びは原稿を正とし、原稿が無ければ pose の kf を使う
+  const kfList = $derived(technique?.keyframes ?? poseData?.keyframes ?? [])
+  const kfIndex = $derived(nearestIndex(kfList, progress))
+  const kf = $derived(technique ? keyframeFor(technique, attack, kfIndex) : null)
   const kfLabel = $derived(kf?.label ?? poseData?.keyframes[kfIndex]?.id ?? '')
   const parts = $derived(kf ? kf[view] : null)
+
+  const attackDesc = $derived(attack && attack !== technique?.default_attack ? (technique?.attack_overrides[attack]?.desc_html ?? '') : '')
+
+  const glossaryName = (slug: string) => contentIndex.glossary.find((g) => g.id === slug)?.name_ja
+  const attackName = (slug: string) => technique?.attack_overrides[slug]?.label ?? glossaryName(slug) ?? slug
 
   function onScrub(e: Event) {
     progress = Number((e.currentTarget as HTMLInputElement).value)
@@ -70,7 +82,13 @@
 <article class="technique">
   <header class="head">
     <a class="back" href="#/">← 表紙</a>
-    <h1>{technique?.name_ja ?? id}</h1>
+    <div class="title">
+      <h1>{technique?.name_ja ?? id}</h1>
+      {#if technique}
+        <p class="reading">{technique.reading}{#if technique.name_en[0]}<span class="en">{technique.name_en[0]}</span>{/if}</p>
+      {/if}
+    </div>
+    {#if technique}<StatusBadge status={technique.status} />{/if}
   </header>
 
   {#if loading}
@@ -78,7 +96,20 @@
   {:else if !scene}
     <p class="note">この技のアニメーション（pose.json）はまだありません。</p>
   {:else}
-    <ViewTabs {view} controls="technique-stage" onchange={(v) => (view = v)} />
+    <div class="controls-top">
+      <ViewTabs {view} controls="technique-stage" onchange={(v) => (view = v)} />
+      {#if technique && technique.attacks.length > 1}
+        <label class="attack">
+          <span>攻撃法</span>
+          <select bind:value={attack}>
+            {#each technique.attacks as a (a)}
+              <option value={a}>{attackName(a)}</option>
+            {/each}
+          </select>
+        </label>
+      {/if}
+    </div>
+
     <div id="technique-stage" role="tabpanel" aria-labelledby="view-tab-{view}">
       <TechniqueStage
         {scene}
@@ -91,11 +122,24 @@
         onselect={onSelectPart}
       />
     </div>
+
     <label class="scrub">
       <span class="visually-hidden">再生位置</span>
       <input type="range" min="0" max="1" step="0.001" value={progress} oninput={onScrub} aria-valuetext={`${Math.round(progress * 100)}%（${kfLabel}）`} />
     </label>
-    <p class="kf">位置 {progress.toFixed(3)} ／ 最寄りのキーフレーム：{kfLabel}</p>
+
+    <section class="kf-info" aria-live="polite" aria-atomic="true">
+      <h2 class="kf-name">
+        <span class="kf-count">{kfIndex + 1}／{kfList.length}</span>
+        {kfLabel}
+      </h2>
+      {#if kf?.desc_html}
+        <p class="kf-desc">{@html kf.desc_html}</p>
+      {/if}
+      {#if attackDesc}
+        <p class="attack-desc">{@html attackDesc}</p>
+      {/if}
+    </section>
   {/if}
 </article>
 
@@ -107,19 +151,70 @@
   }
   .head {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--space-3);
+    margin-bottom: var(--space-2);
   }
   .back {
     font-size: var(--text-s);
+    white-space: nowrap;
+  }
+  .title {
+    flex: 1;
+    min-width: 0;
   }
   h1 {
     font-size: var(--text-xl);
   }
+  .reading {
+    font-family: var(--font-sub);
+    font-size: var(--text-xs);
+    color: var(--sumi-juu);
+  }
+  .en {
+    margin-left: var(--space-2);
+    letter-spacing: 0.02em;
+  }
+  .controls-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .attack {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-s);
+  }
+  .attack select {
+    min-height: var(--tap-min);
+    font: inherit;
+    background: var(--washi-light);
+    border: 1px solid var(--sumi-tan);
+    border-radius: var(--radius-s);
+  }
   .scrub input {
     width: 100%;
   }
-  .kf,
+  .kf-info {
+    margin-top: var(--space-2);
+  }
+  .kf-name {
+    font-size: var(--text-l);
+  }
+  .kf-count {
+    font-family: var(--font-sub);
+    font-size: var(--text-xs);
+    color: var(--sumi-juu);
+    margin-right: var(--space-2);
+  }
+  .kf-desc,
+  .attack-desc {
+    font-size: var(--text-m);
+    margin-top: var(--space-1);
+  }
   .note {
     font-size: var(--text-s);
     color: var(--sumi-juu);

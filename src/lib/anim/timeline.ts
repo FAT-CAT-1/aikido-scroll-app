@@ -80,17 +80,3 @@ export function createPoseTimeline(data: PoseData): PoseTimeline {
     },
   }
 }
-
-/** 進捗に最も近い kf（animation-spec §5-3「現在kf」＝ |progress − at| 最小） */
-export function nearestKeyframeIndex(keyframes: readonly { at: number }[], progress: number): number {
-  let best = 0
-  let bestD = Infinity
-  keyframes.forEach((k, i) => {
-    const d = Math.abs(progress - k.at)
-    if (d < bestD - 1e-9) {
-      best = i
-      bestD = d
-    }
-  })
-  return best
-}
