@@ -1,0 +1,74 @@
+/*
+ * デザイントークン（design-complete B-4 の仮値）
+ * 役割は固定・値は上書き可（B-4 決定）。Stitch 選定後（B-2 ④）に値を確定し、SKILL.md §5 と同時に更新する。
+ */
+:root {
+  /* ---- 墨の五彩＋朱＋和紙（B-4-1） ---- */
+  --sumi-shou: #1a1a1a; /* 焦: 最濃・見出し・注目側の線 */
+  --sumi-nou: #333333; /* 濃: 本文 */
+  --sumi-juu: #555555; /* 重: 準本文・境界 */
+  --sumi-tan: #8a8a8a; /* 淡: 補助・奥レイヤー（本文には使わない：和紙上 2.8:1） */
+  --sumi-sei: #c9c4b8; /* 清: 最淡・下地の線 */
+  --shu: #b7282e; /* 朱: 強調1系統・師範差・帯矢印・落款（和紙上 5.1:1） */
+  --washi: #efe8d8; /* 和紙: 背景 */
+  --washi-deep: #e6dcc6; /* 和紙（濃）: 深層トグルの下地 */
+  --washi-light: #f6f1e6; /* 和紙（明）: 吹き出しの下地 */
+
+  /* ---- 状態色（B-4-2） ---- */
+  --focus: var(--shu);
+  --selected: var(--sumi-shou);
+  --disabled: var(--sumi-tan);
+
+  /* ---- 信頼マーク（B-4-2 / content-spec §2-5） ----
+   * 無印（一般的な指導）は仕様上 --sumi-tan だが、l2〜l5 の大半が無印文で本文扱いになるため
+   * コントラスト 4.5:1 を満たす「重」に上書きする（docs/decisions.md D-06）。色以外の手掛かりは印で付ける。 */
+  --trust-fact: var(--sumi-shou);
+  --trust-general: var(--sumi-juu);
+  --trust-shihan: var(--shu);
+
+  /* ---- タイポ（B-4-3） ---- */
+  --font-heading: 'Yuji Syuku', 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --font-body: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --font-sub: 'Zen Old Mincho', 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --text-xs: 0.8125rem; /* 13px: 吹き出し・注記のみ */
+  --text-s: 0.875rem; /* 14px */
+  --text-m: 1rem; /* 16px: 本文の最小 */
+  --text-l: 1.25rem; /* 20px */
+  --text-xl: 1.75rem; /* 28px */
+  --text-xxl: 2.5rem; /* 40px */
+  --leading-body: 1.85;
+  --leading-tight: 1.4;
+
+  /* ---- 8px グリッド（B-4-3） ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+
+  /* ---- 線・角・影 ---- */
+  --line-hair: 1px;
+  --line-thin: 2px;
+  --line-bold: 4px;
+  --radius-s: 2px;
+  --radius-m: 4px;
+  --tap-min: 44px;
+
+  /* ---- モーション（B-4-3 / B-6） ---- */
+  --dur-fast: 0.2s;
+  --dur-base: 0.3s;
+  --dur-slow: 0.4s;
+  --dur-zoom: 0.45s;
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0s;
+    --dur-base: 0s;
+    --dur-slow: 0s;
+    --dur-zoom: 0s;
+  }
+}
