@@ -4,12 +4,15 @@
   // - 視点切替：取り／受けタブで反転＋レイヤー入替＋濃淡。切替時も進捗を保つ（T15）
   // - 一時停止で注目側6部位の l1 吹き出し（T16）
   // - 技の巻物ストリップの横スクロール量＝進捗。指を止めて 300ms で一時停止（T25）
+  // - 再生ボタンで自動スクロール同期。再生中に触れたら即一時停止。0.5×。reduced-motion は kf ステップ送り（T26）
   // - 現在 kf（|progress − at| 最小）の解説へ切替。攻撃法を選ぶと差分 kf で丸ごと置換（T17）
   // - 吹き出しタップで深層トグル（l1→l5）。同じ部位をもう一度で1段深く、Esc／一段閉じるで1段戻る（T18）
   // - アニメ領域のピンチ：開く＝中点に最も近い部位を開く／1段深く、閉じる＝1段閉じる（T21）
   // - トグルの深さは history と同期：開くたび pushState、戻るボタンで1段ずつ閉じる、画面の「閉じる」は history.back()（T22）
   //   用語リンクで離れて戻ったときは、保存しておいた進捗・視点・スクロールとトグルの深さを復元する
+  import { gsap } from 'gsap'
   import { tick } from 'svelte'
+  import { MediaQuery } from 'svelte/reactivity'
   import { createPoseTimeline, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
   import type { PinchDirection } from '../lib/gesture/pinch'
   import { nav } from '../lib/history/nav.svelte'
@@ -17,6 +20,7 @@
   import { contentIndex, loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
   import type { Part, PoseData, Role, Technique } from '../lib/content/types'
   import PartToggle from './PartToggle.svelte'
+  import PlayControls from './PlayControls.svelte'
   import ScrubStrip from './ScrubStrip.svelte'
   import StatusBadge from './StatusBadge.svelte'
   import TechniqueStage from './TechniqueStage.svelte'
@@ -73,6 +77,7 @@
     })
     return () => {
       cancelled = true
+      stopPlaying()
       timeline?.destroy()
       timeline = null
     }
@@ -104,6 +109,68 @@
     if (nav.state.toggle) nav.stack.closeAll()
   }
   function onIdle() {
+    paused = true
+  }
+
+  // ---- 再生（Playing）：GSAP で進捗を進め、ストリップの位置も同期する ----
+  const BASE_SECONDS = 7 // 等速で技の最初から最後まで
+  const reducedMotion = new MediaQuery('(prefers-reduced-motion: reduce)')
+  let playing = $state(false)
+  let speed = $state(1)
+  let playTween: gsap.core.Tween | null = null
+
+  function startPlaying() {
+    if (reducedMotion.current || !timeline) return
+    if (nav.state.toggle) nav.stack.closeAll()
+    const from = progress >= 0.999 ? 0 : progress
+    const proxy = { p: from }
+    playTween?.kill()
+    playing = true
+    paused = false
+    playTween = gsap.to(proxy, {
+      p: 1,
+      duration: (BASE_SECONDS * (1 - from)) / speed,
+      ease: 'none',
+      onUpdate: () => seekTo(proxy.p),
+      onComplete: () => stopPlaying(),
+    })
+  }
+  function stopPlaying() {
+    playTween?.kill()
+    playTween = null
+    if (playing) {
+      playing = false
+      paused = true
+    }
+  }
+  function togglePlay() {
+    if (playing) stopPlaying()
+    else startPlaying()
+  }
+  function changeSpeed(s: number) {
+    speed = s
+    if (playing) startPlaying()
+  }
+  // 再生中に巻物・骨格へ触れたら止める（animation-spec §5-2「ユーザーのスクロール入力で Paused」）
+  function onUserInteract() {
+    if (playing) stopPlaying()
+  }
+  let stageBlock = $state<HTMLElement>()
+  $effect(() => {
+    const el = stageBlock
+    if (!el) return
+    el.addEventListener('pointerdown', onUserInteract)
+    return () => el.removeEventListener('pointerdown', onUserInteract)
+  })
+
+  // kf 単位の送り（reduced-motion の代替・キーボード操作にも）
+  const prevAt = $derived([...kfList].reverse().find((k) => k.at < progress - 1e-6)?.at ?? null)
+  const nextAt = $derived(kfList.find((k) => k.at > progress + 1e-6)?.at ?? null)
+  function stepTo(at: number | null) {
+    if (at === null) return
+    stopPlaying()
+    if (nav.state.toggle) nav.stack.closeAll()
+    seekTo(at)
     paused = true
   }
   const stripKeyframes = $derived(kfList.map((k) => ({ id: k.id, label: 'label' in k ? k.label : k.id, at: k.at })))
@@ -192,7 +259,7 @@
       {/if}
     </div>
 
-    <div id="technique-stage" class="stage-block" class:focused={toggle !== null} role="tabpanel" aria-labelledby="view-tab-{view}">
+    <div id="technique-stage" class="stage-block" class:focused={toggle !== null} role="tabpanel" aria-labelledby="view-tab-{view}" bind:this={stageBlock}>
       <TechniqueStage
         {scene}
         {view}
@@ -222,10 +289,24 @@
     <ScrubStrip
       keyframes={stripKeyframes}
       {progress}
+      {playing}
       label="技の再生位置（巻物）"
       valueText={`${Math.round(progress * 100)}%・${kfLabel}`}
       onscrub={onScrub}
       onidle={onIdle}
+      oninteract={onUserInteract}
+    />
+
+    <PlayControls
+      {playing}
+      {speed}
+      reducedMotion={reducedMotion.current}
+      canPrev={prevAt !== null}
+      canNext={nextAt !== null}
+      ontoggleplay={togglePlay}
+      onspeed={changeSpeed}
+      onprev={() => stepTo(prevAt)}
+      onnext={() => stepTo(nextAt)}
     />
 
     <section class="kf-info" aria-live="polite" aria-atomic="true">

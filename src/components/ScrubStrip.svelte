@@ -2,7 +2,9 @@
   // 技の巻物ストリップ（animation-spec §5-2 / design-complete A-4 / backlog T25）
   // 横スクロール量を 0〜1 に正規化して進捗にする。中央の朱の線（再生位置）に kf の目盛りが重なる位置が、その kf の at。
   // - 指（ホイール・キー）で動かすと onscrub(progress)。止まって 300ms で onidle（＝一時停止。親が吹き出しを出す）
-  // - 近くで止めると kf の目盛りに吸着（proximity snap）。再生中（playing）は吸着を切り、親が setProgress で位置を送る
+  // - 止まった位置が kf から ±2.5% 以内なら、その kf にそろえてから一時停止（姿勢と解説を一致させる）
+  //   CSS の scroll-snap は再生の停止時などに勝手に位置を動かし進捗と食い違うため使わない
+  // - 自分で書いた scrollLeft（再生・kf 送り・復元）による scroll イベントは、期待位置との一致で見分けて無視する
   // - キーボード: role=slider。←→ で 2%、PageUp/PageDown・Home/End で kf 単位／端
   import { onMount } from 'svelte'
 
@@ -21,12 +23,13 @@
 
   const LENGTH = 4 // 巻物の長さ（表示幅の何倍か）
   const IDLE_MS = 300
+  const SNAP = 0.025 // kf にそろえる範囲（進捗）
 
   let scroller = $state<HTMLElement>()
   let width = $state(0)
   let idleTimer: ReturnType<typeof setTimeout> | undefined
-  /** 自分で scrollLeft を書いた直後の scroll イベントは、ユーザー操作として扱わない */
-  let programmatic = false
+  /** 最後に自分で書いた scrollLeft（これと一致する scroll イベントは自分の書き込み） */
+  let writtenLeft = -1
 
   const maxScroll = $derived(width * (LENGTH - 1))
 
@@ -34,7 +37,7 @@
     if (!scroller || maxScroll <= 0) return
     const left = Math.round(p * maxScroll)
     if (Math.abs(scroller.scrollLeft - left) < 1) return
-    programmatic = true
+    writtenLeft = left
     scroller.scrollLeft = left
   }
 
@@ -57,15 +60,23 @@
 
   function onScroll() {
     if (!scroller || maxScroll <= 0) return
-    if (programmatic) {
-      programmatic = false
-      return
-    }
+    // 自分の書き込み（再生中の同期など）はユーザー操作として扱わない
+    if (Math.abs(scroller.scrollLeft - writtenLeft) <= 1) return
     if (playing) return
     const p = Math.min(1, Math.max(0, scroller.scrollLeft / maxScroll))
     onscrub(p)
     clearTimeout(idleTimer)
-    idleTimer = setTimeout(onidle, IDLE_MS)
+    idleTimer = setTimeout(settle, IDLE_MS)
+  }
+
+  /** 止まったら：近くの kf にそろえてから一時停止 */
+  function settle() {
+    const near = keyframes.find((k) => Math.abs(k.at - progress) <= SNAP)
+    if (near && Math.abs(near.at - progress) > 1e-4) {
+      onscrub(near.at)
+      setScroll(near.at)
+    }
+    onidle()
   }
 
   function stepTo(p: number) {
@@ -74,7 +85,7 @@
     onscrub(clamped)
     setScroll(clamped)
     clearTimeout(idleTimer)
-    idleTimer = setTimeout(onidle, IDLE_MS)
+    idleTimer = setTimeout(settle, IDLE_MS)
   }
 
   function onkeydown(e: KeyboardEvent) {
@@ -147,15 +158,11 @@
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
     scrollbar-width: none;
     touch-action: pan-x;
   }
   .scroller::-webkit-scrollbar {
     display: none;
-  }
-  .playing .scroller {
-    scroll-snap-type: none;
   }
   .scroller:focus-visible {
     outline: 2px solid var(--focus);
@@ -182,7 +189,6 @@
     top: 0;
     bottom: 0;
     width: 0;
-    scroll-snap-align: center;
   }
   .mark {
     position: absolute;
