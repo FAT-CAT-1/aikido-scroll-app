@@ -1,10 +1,12 @@
 <script lang="ts">
-  // 技詳細（S-03）。pose.json から Timeline を作り、スライダーで 0〜1 を動かすと補間される（T13）。
-  // 視点切替（T15）：取り／受けタブで反転＋レイヤー入替＋濃淡。切替時も progress（at）を保つ
-  import Body from '../lib/anim/Body.svelte'
+  // 技詳細（S-03）
+  // - pose.json から Timeline を作り、進捗 0〜1 で補間表示（T13）
+  // - 視点切替：取り／受けタブで反転＋レイヤー入替＋濃淡。切替時も進捗を保つ（T15）
+  // - 一時停止で注目側6部位の l1 吹き出し（T16）。T25 までは「スライダー操作が 300ms 止まったら一時停止」
   import { createPoseTimeline, nearestKeyframeIndex, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
   import { loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
-  import type { PoseData, Role, Technique } from '../lib/content/types'
+  import type { Part, PoseData, Role, Technique } from '../lib/content/types'
+  import TechniqueStage from './TechniqueStage.svelte'
   import ViewTabs from './ViewTabs.svelte'
 
   interface Props {
@@ -13,13 +15,18 @@
   }
   let { id, kind = 'technique' }: Props = $props()
 
+  const TOGGLE_ID = 'part-toggle'
+  const IDLE_MS = 300
+
   let technique = $state.raw<Technique | null>(null)
   let poseData = $state.raw<PoseData | null>(null)
   let scene = $state.raw<ScenePose | null>(null)
   let progress = $state(0)
   let view = $state<Role>('tori')
+  let paused = $state(true)
   let loading = $state(true)
   let timeline: PoseTimeline | null = null
+  let idleTimer: ReturnType<typeof setTimeout> | undefined
 
   $effect(() => {
     let cancelled = false
@@ -35,17 +42,28 @@
     })
     return () => {
       cancelled = true
+      clearTimeout(idleTimer)
       timeline?.destroy()
       timeline = null
     }
   })
 
   const kfIndex = $derived(poseData ? nearestKeyframeIndex(poseData.keyframes, progress) : 0)
-  const kfLabel = $derived(technique?.keyframes[kfIndex]?.label ?? poseData?.keyframes[kfIndex]?.id ?? '')
+  const kf = $derived(technique?.keyframes[kfIndex] ?? null)
+  const kfLabel = $derived(kf?.label ?? poseData?.keyframes[kfIndex]?.id ?? '')
+  const parts = $derived(kf ? kf[view] : null)
 
   function onScrub(e: Event) {
     progress = Number((e.currentTarget as HTMLInputElement).value)
     if (timeline) scene = timeline.seek(progress)
+    paused = false
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(() => (paused = true), IDLE_MS)
+  }
+
+  function onSelectPart(part: Part) {
+    // T18 で深層トグルを開く
+    void part
   }
 </script>
 
@@ -61,8 +79,17 @@
     <p class="note">この技のアニメーション（pose.json）はまだありません。</p>
   {:else}
     <ViewTabs {view} controls="technique-stage" onchange={(v) => (view = v)} />
-    <div class="stage" id="technique-stage" role="tabpanel" aria-labelledby="view-tab-{view}">
-      <Body pose={scene} {view} ground={poseData?.ground} label={`${technique?.name_ja ?? id}の動き（${view === 'tori' ? '取り' : '受け'}の視点）`} />
+    <div id="technique-stage" role="tabpanel" aria-labelledby="view-tab-{view}">
+      <TechniqueStage
+        {scene}
+        {view}
+        ground={poseData?.ground}
+        label={`${technique?.name_ja ?? id}の動き（${view === 'tori' ? '取り' : '受け'}の視点）`}
+        {parts}
+        {paused}
+        toggleId={TOGGLE_ID}
+        onselect={onSelectPart}
+      />
     </div>
     <label class="scrub">
       <span class="visually-hidden">再生位置</span>
@@ -74,7 +101,7 @@
 
 <style>
   .technique {
-    max-width: 960px;
+    max-width: 760px;
     margin: 0 auto;
     padding: var(--space-3);
   }
@@ -88,10 +115,6 @@
   }
   h1 {
     font-size: var(--text-xl);
-  }
-  .stage {
-    aspect-ratio: 1000 / 600;
-    width: 100%;
   }
   .scrub input {
     width: 100%;

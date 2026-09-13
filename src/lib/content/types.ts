@@ -13,6 +13,15 @@ export const PART_LABEL: Record<Part, string> = {
   knee: '膝',
   foot: '足',
 }
+/** 吹き出しなど狭い所で使う1字の部位名（読み上げ・見出しは PART_LABEL） */
+export const PART_SHORT: Record<Part, string> = {
+  eye: '目',
+  face: '顔',
+  shoulder: '肩',
+  hara: '腹',
+  knee: '膝',
+  foot: '足',
+}
 export const ROLE_LABEL: Record<Role, string> = { tori: '取り', uke: '受け' }
 
 export interface PartLevels {
