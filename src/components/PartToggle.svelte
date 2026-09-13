@@ -108,7 +108,8 @@
   }
   .depth-5 {
     --pad: var(--space-4);
-    background: var(--washi-deep);
+    /* 重（#555）の一般指導文でも 4.5:1 を保てる濃さまで（#e9e1cf 上で 5.8:1） */
+    background: #e9e1cf;
     --ink: var(--sumi-shou);
   }
 

@@ -214,7 +214,7 @@
     transform: translateX(-50%);
     font-family: var(--font-sub);
     font-size: var(--text-xs);
-    color: var(--sumi-juu);
+    color: var(--sumi-nou);
   }
   .playhead {
     position: absolute;

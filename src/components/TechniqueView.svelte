@@ -228,7 +228,7 @@
 
 <svelte:window onkeydown={onWindowKeydown} />
 
-<article class="technique">
+<main class="technique">
   <header class="head">
     <a class="back" href="#/">← 表紙</a>
     <div class="title">
@@ -322,7 +322,7 @@
       {/if}
     </section>
   {/if}
-</article>
+</main>
 
 <style>
   .technique {
