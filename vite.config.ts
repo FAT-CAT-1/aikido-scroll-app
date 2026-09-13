@@ -1,6 +1,7 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import contentPlugin from './scripts/vite-plugin-content.mjs'
 
 // GitHub Pages のサブパス配信（design-complete A-10）。カスタムドメイン時は '/'
 const base = '/aikido-scroll-app/'
@@ -8,6 +9,8 @@ const base = '/aikido-scroll-app/'
 export default defineConfig({
   base,
   plugins: [
+    // content/ → src/generated/（起動・ビルド時に生成、dev は変更を監視）
+    contentPlugin(),
     svelte(),
     // design-complete A-9。manifest はここで定義する（docs/decisions.md D-09〜D-12）
     VitePWA({

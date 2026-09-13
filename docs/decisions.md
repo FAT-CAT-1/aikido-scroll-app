@@ -20,3 +20,10 @@
 | D-12 | 画面の向き | 仕様どおり `orientation: portrait`（WCAG 2.2 SC 1.3.4 に抵触しうる点は要判断として残す） | A-9 |
 | D-13 | Node | CI は Node 22、`engines` は `>=22.12.0`（Vite 8 の要件） | backlog §0 |
 | D-14 | TypeScript | `~6.0`（svelte-check 4.7 が TS 7 未対応。Vite 公式テンプレートと同じ） | 互換性 |
+| D-15 | 一教（表）の kf | `kamae 0.0 / contact 0.15 / kuzushi 0.35 / irimi 0.55 / osae 0.8 / zanshin 1.0`（原稿・pose 共通） | backlog T06 の目安6kf、content-spec §8 の at を踏襲 |
+| D-16 | 事実マークの出典 | `{{f:}}` は frontmatter の sources に実在出典を定義して `@src` を付けられる文だけ。出典を示せない事柄は無印か `{{v:}}` | 警告0と正確さの両立。架空出典を作らない |
+| D-17 | 動画リンク | 講師・内容を確認できるまで `videos: []` | 未確認 URL を載せない |
+| D-18 | `[[用語]]` の解決先 | 単語集（name_ja / aliases）を優先し、無ければ技・基礎（name_ja / aliases）へ `#/techniques/:id` でリンク | content-spec §2-2 の関連欄 `[[一教（裏）]]` が技を指すため（初回報告 B-20） |
+| D-19 | wiki-link の実装 | `@portaljs/remark-wiki-link` は使わず、ビルド時の自前トークナイザで処理（remark の mdast 上で変換） | 同プラグインは `[[対象\|表示]]` 順で、content-spec の `[[表示\|正規名]]` と逆。信頼マークと同時に処理するため |
+| D-20 | l1・文字数 | l1 は表示文字だけを出力（`[[ ]]` やマークは警告して除去）。文字数は記法と出典表記を除いた表示テキストで数える | 初回報告 B-21, B-22 |
+| D-21 | 生成物の形 | `src/generated/index.json`（一覧）＋種別ごとの JSON。単語集 JSON に `used_in`（技からの逆リンク）を付ける | 初回報告 B-23。content-spec §5 に単語集の出力形式が無いため |
