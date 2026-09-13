@@ -5,7 +5,9 @@
   // - 一時停止で注目側6部位の l1 吹き出し（T16）。T25 までは「スライダー操作が 300ms 止まったら一時停止」
   // - 現在 kf（|progress − at| 最小）の解説へ切替。攻撃法を選ぶと差分 kf で丸ごと置換（T17）
   // - 吹き出しタップで深層トグル（l1→l5）。同じ部位をもう一度で1段深く、Esc／一段閉じるで1段戻る（T18）
+  // - アニメ領域のピンチ：開く＝中点に最も近い部位を開く／1段深く、閉じる＝1段閉じる（T21）
   import { createPoseTimeline, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
+  import type { PinchDirection } from '../lib/gesture/pinch'
   import { keyframeFor, nearestIndex } from '../lib/content/keyframe'
   import { contentIndex, loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
   import type { Part, PoseData, Role, Technique } from '../lib/content/types'
@@ -93,6 +95,15 @@
     // すべて閉じたら、開く元になった吹き出しへフォーカスを戻す
     if (!toggle) queueMicrotask(() => (document.querySelector(`.bubble[data-part="${part}"]`) as HTMLElement | null)?.focus())
   }
+  function onPinch(direction: PinchDirection, part: Part | null) {
+    if (direction === 'in') {
+      closeOne()
+      return
+    }
+    if (!paused) return
+    if (toggle) deepen()
+    else if (part) toggle = { part, depth: 1 }
+  }
   function changeView(v: Role) {
     toggle = null
     view = v
@@ -152,6 +163,7 @@
         focusPart={toggle?.part ?? null}
         depth={toggle?.depth ?? 0}
         onselect={onSelectPart}
+        onpinch={onPinch}
       />
     </div>
 
