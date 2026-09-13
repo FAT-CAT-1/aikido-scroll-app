@@ -94,8 +94,17 @@
     return () => ro.disconnect()
   })
 
-  const topOrder = $derived(orderByX(TOP_PARTS, anchors))
-  const bottomOrder = $derived(orderByX(BOTTOM_PARTS, anchors))
+  // 段内の並び（起点の x 順）も DOM を測らずポーズから計算する。測ってから並べ替えると、最初の描画の後に吹き出しが動いてレイアウトがずれる
+  const poseAnchors = $derived.by(() => {
+    const out: Anchors = {}
+    for (const part of [...TOP_PARTS, ...BOTTOM_PARTS]) {
+      const p = partAnchor(scene[view], part, 'f')
+      out[part] = { x: view === 'uke' ? VIEW_W - p[0] : p[0], y: p[1] }
+    }
+    return out
+  })
+  const topOrder = $derived(orderByX(TOP_PARTS, poseAnchors))
+  const bottomOrder = $derived(orderByX(BOTTOM_PARTS, poseAnchors))
 </script>
 
 <div class="stage" class:paused class:focused bind:this={wrap}>
