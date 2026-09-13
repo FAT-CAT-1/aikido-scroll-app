@@ -3,8 +3,11 @@
   import HomeView from './components/HomeView.svelte'
   import TechniqueView from './components/TechniqueView.svelte'
   import TermView from './components/TermView.svelte'
+  import UpdateToast from './components/UpdateToast.svelte'
   import { router } from './lib/router.svelte'
 </script>
+
+<UpdateToast />
 
 {#if router.route.name === 'technique'}
   {#key router.route.id}
