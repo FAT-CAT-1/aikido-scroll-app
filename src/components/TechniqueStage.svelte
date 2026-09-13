@@ -4,7 +4,8 @@
   import { tick } from 'svelte'
   import Body from '../lib/anim/Body.svelte'
   import { VIEW_H, VIEW_W, partAnchor } from '../lib/anim/geometry'
-  import { BOTTOM_PARTS, TOP_PARTS, leaderLines, leaderPath, orderByX, readAnchors, type Anchors, type Leader } from '../lib/anim/markers'
+  import { pinch, type PinchDirection, type PinchEvent } from '../lib/gesture/pinch'
+  import { BOTTOM_PARTS, TOP_PARTS, leaderLines, leaderPath, nearestPart, orderByX, readAnchors, type Anchors, type Leader } from '../lib/anim/markers'
   import type { ScenePose } from '../lib/anim/timeline'
   import type { Part, PartLevels, Role } from '../lib/content/types'
   import { PART_LABEL, PART_SHORT } from '../lib/content/types'
@@ -24,8 +25,21 @@
     focusPart?: Part | null
     depth?: number
     onselect?: (part: Part) => void
+    /** アニメ領域でのピンチ。part は2指の中点に最も近い部位（T21 でトグルの開閉に使う） */
+    onpinch?: (direction: PinchDirection, part: Part | null) => void
   }
-  let { scene, view, ground = 520, label, parts, paused, toggleId, focusPart = null, depth = 0, onselect = () => {} }: Props = $props()
+  let { scene, view, ground = 520, label, parts, paused, toggleId, focusPart = null, depth = 0, onselect = () => {}, onpinch = () => {} }: Props = $props()
+
+  let drawing = $state<HTMLElement>()
+
+  function handlePinch(e: PinchEvent) {
+    if (!wrap || !drawing) return
+    // 中点（アニメ領域の座標）→ ステージ座標に直して、最も近い部位の起点を選ぶ
+    const w = wrap.getBoundingClientRect()
+    const d = drawing.getBoundingClientRect()
+    const point = { x: e.center.x + d.left - w.left, y: e.center.y + d.top - w.top }
+    onpinch(e.direction, nearestPart(readAnchors(wrap, view), point))
+  }
 
   const focused = $derived(focusPart !== null && depth > 0)
 
@@ -89,7 +103,7 @@
     {/each}
   </div>
 
-  <div class="drawing">
+  <div class="drawing" bind:this={drawing} use:pinch={{ onpinch: handlePinch }}>
     <Zoomable scale={zoom} originX={origin.x} originY={origin.y}>
       <Body pose={scene} {view} {ground} {label} />
     </Zoomable>
@@ -182,6 +196,8 @@
     aspect-ratio: 1000 / 600;
     width: 100%;
     overflow: hidden;
+    /* ピンチ判定のため、アニメ領域の要素にだけ touch-action を止める。ページ全体・吹き出し・解説の標準ズームとスクロールは生きる（CLAUDE.md 絶対ルール4） */
+    touch-action: none;
   }
   .leaders {
     position: absolute;
