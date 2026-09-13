@@ -87,27 +87,12 @@
     }
   })
 
-  function onkeydown(e: KeyboardEvent) {
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') {
-      e.preventDefault()
-      goTo(index + 1)
-    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-      e.preventDefault()
-      goTo(index - 1)
-    } else if (e.key === 'Home') {
-      e.preventDefault()
-      goTo(0)
-    } else if (e.key === 'End') {
-      e.preventDefault()
-      goTo(chapters.length - 1)
-    }
-  }
 </script>
 
 <section class="emaki" aria-label="巻物">
-  <!-- スクロール領域はキーボードでも操作できるようフォーカス可能にする（←→ で章移動） -->
+  <!-- スクロール領域はフォーカス可能にし、ブラウザ標準の ←→ / Home / End スクロール（スナップ付き）で章を移動できる -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <div class="scroller" class:timeline={supportsScrollTimeline} bind:this={scroller} tabindex="0" role="group" {onkeydown} aria-roledescription="巻物" aria-label="章の一覧（左右の矢印キーで移動）">
+  <div class="scroller" class:timeline={supportsScrollTimeline} bind:this={scroller} tabindex="0" role="region" aria-roledescription="巻物" aria-label="章の一覧（左右の矢印キーで移動）">
     {#each chapters as ch, i (ch.id)}
       <article class="chapter" data-index={i} aria-roledescription="章" aria-label="{ch.num} {ch.title}（{i + 1} / {chapters.length}）">
         <div class="inner">
