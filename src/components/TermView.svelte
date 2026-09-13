@@ -1,5 +1,6 @@
 <script lang="ts">
   // 用語詳細（S-05 / design-complete A-8「used_in から技へ逆リンク、動画リンク表示」/ backlog T27）
+  import { glossaryIndex } from '../lib/content/glossary-index'
   import { contentIndex, loadGlossary } from '../lib/content/loader'
   import { GLOSSARY_CATEGORY_LABEL, VIDEO_RANK_LABEL } from '../lib/content/labels'
   import type { GlossaryEntry } from '../lib/content/types'
@@ -26,7 +27,7 @@
     }
   })
 
-  const nameOfTerm = (slug: string) => contentIndex.glossary.find((g) => g.id === slug)?.name_ja ?? slug
+  const nameOfTerm = (slug: string) => glossaryIndex.find((g) => g.id === slug)?.name_ja ?? slug
   const allTechniques = [...contentIndex.techniques, ...contentIndex.kihon]
   const techniqueOf = (tid: string) => allTechniques.find((t) => t.id === tid)
 </script>

@@ -30,7 +30,7 @@
 
   const items = $derived<TechniqueSummary[]>(kind === 'kihon' ? contentIndex.kihon : contentIndex.techniques)
   const title = $derived(kind === 'kihon' ? '基礎動作' : '技の一覧')
-  const glossaryName = (slug: string) => contentIndex.glossary.find((g) => g.id === slug)?.name_ja ?? slug
+  const glossaryName = (slug: string) => contentIndex.attack_names[slug] ?? slug
 
   const ranks = $derived(RANK_ORDER.filter((r) => items.some((t) => t.rank === r)))
   const attacks = $derived([...new Set(items.flatMap((t) => t.attacks))])

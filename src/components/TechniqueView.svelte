@@ -99,7 +99,7 @@
 
   const attackDesc = $derived(attack && attack !== technique?.default_attack ? (technique?.attack_overrides[attack]?.desc_html ?? '') : '')
 
-  const glossaryName = (slug: string) => contentIndex.glossary.find((g) => g.id === slug)?.name_ja
+  const glossaryName = (slug: string) => contentIndex.attack_names[slug]
   const attackName = (slug: string) => technique?.attack_overrides[slug]?.label ?? glossaryName(slug) ?? slug
 
   // ---- 巻物ストリップとの同期（ScrollDriven → 300ms 停止で Paused） ----

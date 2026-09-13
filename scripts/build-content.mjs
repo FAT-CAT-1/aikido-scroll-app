@@ -5,7 +5,8 @@
 //   npm run build:content -- --quiet
 //
 // 出力（src/generated/ は git 管理外）
-//   index.json                 技・基礎・単語集・章ページの一覧（アプリ起動時に読む）
+//   index.json                 技・基礎・章ページの一覧、単語集の語数、攻撃法の名前（アプリ起動時に読む。小さく保つ）
+//   glossary-index.json        単語集の一覧（単語集・用語の画面を開いたときに読む）
 //   techniques/{id}.json       技（content-spec §5）  kihon/{id}.json  基礎
 //   glossary/{id}.json         用語（used_in 付き）
 //   pages/{name}.json          章ページ
@@ -131,13 +132,21 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   diag.info('content', `draft ${all.filter((x) => x.status === 'draft').length}件 ／ review ${all.filter((x) => x.status === 'review').length}件 ／ approved ${approved}件（approved率 ${all.length ? Math.round((approved / all.length) * 100) : 0}%）`)
 
   // ---- 出力 ----
+  const glossaryIndex = glossary
+    .map((g) => ({ id: g.id, name_ja: g.name_ja, reading: g.reading, romaji: g.romaji, name_en: g.name_en, category: g.category, def_text: g.def_text, status: g.status }))
+    .sort((a, b) => a.reading.localeCompare(b.reading, 'ja'))
+  // 技の一覧・技詳細で攻撃法の slug を名前で出すための表（単語集の一覧全体を起動時に読まないで済むように）
+  const glossaryName = new Map(glossary.map((g) => [g.id, g.name_ja]))
+  const attackNames = {}
+  for (const t of [...techniques, ...kihon]) {
+    for (const slug of [t.default_attack, ...t.attacks]) if (slug && glossaryName.has(slug)) attackNames[slug] = glossaryName.get(slug)
+  }
   const index = {
     techniques: techniques.map(summary),
     kihon: kihon.map(summary),
-    glossary: glossary
-      .map((g) => ({ id: g.id, name_ja: g.name_ja, reading: g.reading, romaji: g.romaji, name_en: g.name_en, category: g.category, def_text: g.def_text, status: g.status }))
-      .sort((a, b) => a.reading.localeCompare(b.reading, 'ja')),
     pages: pages.map((p) => ({ name: p.name, title: p.title, lead: p.lead, order: p.order })).sort((a, b) => a.order - b.order),
+    glossary_count: glossary.length,
+    attack_names: attackNames,
   }
   function summary(t) {
     return {
@@ -160,6 +169,7 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   const outputs = new Map()
   const put = (p, obj) => outputs.set(path.join(outDir, p), typeof obj === 'string' ? obj : JSON.stringify(obj))
   put('index.json', index)
+  put('glossary-index.json', glossaryIndex)
   for (const t of techniques) put(`techniques/${t.id}.json`, t)
   for (const t of kihon) put(`kihon/${t.id}.json`, t)
   for (const g of glossary) put(`glossary/${g.id}.json`, g)

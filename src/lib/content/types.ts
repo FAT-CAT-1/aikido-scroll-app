@@ -168,6 +168,10 @@ export interface TechniqueSummary {
 export interface ContentIndex {
   techniques: TechniqueSummary[]
   kihon: TechniqueSummary[]
-  glossary: Pick<GlossaryEntry, 'id' | 'name_ja' | 'reading' | 'romaji' | 'name_en' | 'category' | 'def_text' | 'status'>[]
   pages: Pick<Page, 'name' | 'title' | 'lead' | 'order'>[]
+  glossary_count: number
+  /** 攻撃法の slug → 単語集の名前（技が使う攻撃法だけ） */
+  attack_names: Record<string, string>
 }
+
+export type GlossarySummary = Pick<GlossaryEntry, 'id' | 'name_ja' | 'reading' | 'romaji' | 'name_en' | 'category' | 'def_text' | 'status'>

@@ -10,7 +10,7 @@ const pageMods = import.meta.glob('/src/generated/pages/*.json') as Mods<Page>
 const poseMods = import.meta.glob('/src/generated/poses/*.json') as Mods<PoseData>
 const indexMods = import.meta.glob('/src/generated/index.json', { eager: true }) as Record<string, { default: ContentIndex }>
 
-export const contentIndex: ContentIndex = Object.values(indexMods)[0]?.default ?? { techniques: [], kihon: [], glossary: [], pages: [] }
+export const contentIndex: ContentIndex = Object.values(indexMods)[0]?.default ?? { techniques: [], kihon: [], pages: [], glossary_count: 0, attack_names: {} }
 
 async function load<T>(mods: Mods<T>, dir: string, id: string): Promise<T | null> {
   const loader = mods[`/src/generated/${dir}/${id}.json`]

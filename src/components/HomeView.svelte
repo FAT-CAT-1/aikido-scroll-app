@@ -14,7 +14,7 @@
     { id: 'philosophy', num: '二', title: '理念', href: '#/pages/philosophy', lead: pageLead('philosophy') },
     { id: 'kihon', num: '三', title: '基礎動作', href: '#/kihon', lead: count(contentIndex.kihon.length, '項目') },
     { id: 'techniques', num: '四', title: '技', href: '#/techniques', action: '技の一覧', lead: count(contentIndex.techniques.length, '技') },
-    { id: 'glossary', num: '五', title: '単語集', href: '#/glossary', lead: count(contentIndex.glossary.length, '語') },
+    { id: 'glossary', num: '五', title: '単語集', href: '#/glossary', lead: count(contentIndex.glossary_count, '語') },
   ]
 
   const saved = (nav.state.snap.home as { chapter?: number } | undefined)?.chapter

@@ -1,7 +1,7 @@
 <script lang="ts">
   // 単語集一覧（S-04 / requirements F-08「五十音／分類で閲覧・検索」）
   import { tick } from 'svelte'
-  import { contentIndex } from '../lib/content/loader'
+  import { glossaryIndex } from '../lib/content/glossary-index'
   import { GLOSSARY_CATEGORY_LABEL, KANA_ROW_ORDER, kanaRow } from '../lib/content/labels'
   import { nav } from '../lib/history/nav.svelte'
   import PageHeader from './PageHeader.svelte'
@@ -24,7 +24,7 @@
     if (restore) tick().then(() => window.scrollTo({ top: restore.scrollY, behavior: 'instant' }))
   })
 
-  const categories = $derived([...new Set(contentIndex.glossary.map((g) => g.category))].sort())
+  const categories = $derived([...new Set(glossaryIndex.map((g) => g.category))].sort())
 
   // 検索は ひらがな/カタカナ・全角/半角・大文字小文字の違いを吸収する
   const normalize = (s: string) =>
@@ -36,7 +36,7 @@
 
   const filtered = $derived.by(() => {
     const q = normalize(query)
-    return contentIndex.glossary.filter((g) => {
+    return glossaryIndex.filter((g) => {
       if (category && g.category !== category) return false
       if (!q) return true
       return [g.name_ja, g.reading, g.romaji, ...g.name_en, g.def_text].some((s) => normalize(s).includes(q))
@@ -58,7 +58,7 @@
 </script>
 
 <main class="glossary">
-  <PageHeader title="単語集" sub="{contentIndex.glossary.length}語" />
+  <PageHeader title="単語集" sub="{glossaryIndex.length}語" />
 
   <div class="tools">
     <label class="search">
