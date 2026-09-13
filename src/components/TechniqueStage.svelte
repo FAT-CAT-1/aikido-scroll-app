@@ -6,6 +6,7 @@
   import { BOTTOM_PARTS, TOP_PARTS, leaderLines, leaderPath, orderByX, readAnchors, type Anchors, type Leader } from '../lib/anim/markers'
   import type { ScenePose } from '../lib/anim/timeline'
   import type { Part, PartLevels, Role } from '../lib/content/types'
+  import { PART_LABEL, PART_SHORT } from '../lib/content/types'
   import PartBubble from './PartBubble.svelte'
 
   interface Props {
@@ -17,9 +18,14 @@
     parts: Record<Part, PartLevels> | null
     paused: boolean
     toggleId: string
+    /** 深層トグルで開いている部位（開いている間は吹き出しの段をたたみ、その部位の印だけを残す） */
+    focusPart?: Part | null
+    depth?: number
     onselect?: (part: Part) => void
   }
-  let { scene, view, ground = 520, label, parts, paused, toggleId, onselect = () => {} }: Props = $props()
+  let { scene, view, ground = 520, label, parts, paused, toggleId, focusPart = null, depth = 0, onselect = () => {} }: Props = $props()
+
+  const focused = $derived(focusPart !== null && depth > 0)
 
   let wrap = $state<HTMLElement>()
   let anchors = $state.raw<Anchors>({})
@@ -37,17 +43,20 @@
       const el = bubbleEls[p]
       if (el) map.set(p, el)
     }
-    leaders = paused ? leaderLines(wrap, map, anchors) : []
+    leaders = paused && !focused ? leaderLines(wrap, map, anchors) : []
   }
 
-  // 姿勢・視点・一時停止状態が変わったら測り直す
+  // 姿勢・視点・一時停止状態・開いている部位が変わったら測り直す
   $effect(() => {
     void scene
     void view
     void paused
     void parts
+    void focused
     measure()
   })
+
+  const focusAnchor = $derived(focused && focusPart ? anchors[focusPart] : undefined)
 
   $effect(() => {
     if (!wrap) return
@@ -60,10 +69,10 @@
   const bottomOrder = $derived(orderByX(BOTTOM_PARTS, anchors))
 </script>
 
-<div class="stage" class:paused bind:this={wrap}>
+<div class="stage" class:paused class:focused bind:this={wrap}>
   <div class="band top" aria-hidden={!paused}>
     {#each TOP_PARTS as part (part)}
-      <PartBubble {part} text={textOf(part)} expanded={false} controls={toggleId} order={topOrder.indexOf(part)} {onselect} bind:element={bubbleEls[part]} />
+      <PartBubble {part} text={textOf(part)} expanded={focusPart === part && depth > 0} controls={toggleId} order={topOrder.indexOf(part)} {onselect} bind:element={bubbleEls[part]} />
     {/each}
   </div>
 
@@ -73,7 +82,7 @@
 
   <div class="band bottom" aria-hidden={!paused}>
     {#each BOTTOM_PARTS as part (part)}
-      <PartBubble {part} text={textOf(part)} expanded={false} controls={toggleId} order={bottomOrder.indexOf(part)} {onselect} bind:element={bubbleEls[part]} />
+      <PartBubble {part} text={textOf(part)} expanded={focusPart === part && depth > 0} controls={toggleId} order={bottomOrder.indexOf(part)} {onselect} bind:element={bubbleEls[part]} />
     {/each}
   </div>
 
@@ -82,7 +91,26 @@
       <path class="leader" d={leaderPath(l)} />
       <circle class="leader-dot" cx={l.to.x} cy={l.to.y} r="4" />
     {/each}
+    {#if focusAnchor}
+      <circle class="focus-ring" cx={focusAnchor.x} cy={focusAnchor.y} r="14" />
+      <circle class="leader-dot" cx={focusAnchor.x} cy={focusAnchor.y} r="4" />
+    {/if}
   </svg>
+
+  {#if focusAnchor && focusPart}
+    <!-- 開いている部位の小さな札（タップでさらに深く） -->
+    <button
+      type="button"
+      class="focus-chip"
+      style:left="{focusAnchor.x}px"
+      style:top="{focusAnchor.y}px"
+      aria-controls={toggleId}
+      aria-expanded="true"
+      onclick={() => focusPart && onselect(focusPart)}
+    >
+      <span aria-hidden="true">{PART_SHORT[focusPart]}</span><span class="visually-hidden">{PART_LABEL[focusPart]}をさらに詳しく</span>
+    </button>
+  {/if}
 </div>
 
 <style>
@@ -108,6 +136,32 @@
   .stage:not(.paused) .band {
     opacity: 0;
     visibility: hidden;
+  }
+  /* 部位を開いている間は段をたたんで骨格だけにする（下の解説を広く読むため） */
+  .stage.focused .band {
+    display: none;
+  }
+  .focus-ring {
+    fill: none;
+    stroke: var(--shu);
+    stroke-width: 2.5;
+    stroke-dasharray: 4 3;
+  }
+  .focus-chip {
+    position: absolute;
+    transform: translate(12px, -110%);
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1.5px solid var(--shu);
+    border-radius: 50%;
+    background: var(--washi-light);
+    color: var(--shu);
+    font-family: var(--font-heading);
+    font-size: var(--text-l);
+    cursor: pointer;
   }
   .drawing {
     aspect-ratio: 1000 / 600;

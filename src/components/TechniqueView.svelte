@@ -4,10 +4,12 @@
   // - 視点切替：取り／受けタブで反転＋レイヤー入替＋濃淡。切替時も進捗を保つ（T15）
   // - 一時停止で注目側6部位の l1 吹き出し（T16）。T25 までは「スライダー操作が 300ms 止まったら一時停止」
   // - 現在 kf（|progress − at| 最小）の解説へ切替。攻撃法を選ぶと差分 kf で丸ごと置換（T17）
+  // - 吹き出しタップで深層トグル（l1→l5）。同じ部位をもう一度で1段深く、Esc／一段閉じるで1段戻る（T18）
   import { createPoseTimeline, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
   import { keyframeFor, nearestIndex } from '../lib/content/keyframe'
   import { contentIndex, loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
   import type { Part, PoseData, Role, Technique } from '../lib/content/types'
+  import PartToggle from './PartToggle.svelte'
   import StatusBadge from './StatusBadge.svelte'
   import TechniqueStage from './TechniqueStage.svelte'
   import ViewTabs from './ViewTabs.svelte'
@@ -28,6 +30,7 @@
   let view = $state<Role>('tori')
   let attack = $state<string | null>(null)
   let paused = $state(true)
+  let toggle = $state<{ part: Part; depth: number } | null>(null)
   let loading = $state(true)
   let timeline: PoseTimeline | null = null
   let idleTimer: ReturnType<typeof setTimeout> | undefined
@@ -69,15 +72,42 @@
     progress = Number((e.currentTarget as HTMLInputElement).value)
     if (timeline) scene = timeline.seek(progress)
     paused = false
+    toggle = null
     clearTimeout(idleTimer)
     idleTimer = setTimeout(() => (paused = true), IDLE_MS)
   }
 
+  // ---- 深層トグル（T22 で history と同期する） ----
   function onSelectPart(part: Part) {
-    // T18 で深層トグルを開く
-    void part
+    if (!paused) return
+    if (toggle?.part === part) deepen()
+    else toggle = { part, depth: 1 }
   }
+  function deepen() {
+    if (toggle && toggle.depth < 5) toggle = { ...toggle, depth: toggle.depth + 1 }
+  }
+  function closeOne() {
+    if (!toggle) return
+    const part = toggle.part
+    toggle = toggle.depth > 1 ? { ...toggle, depth: toggle.depth - 1 } : null
+    // すべて閉じたら、開く元になった吹き出しへフォーカスを戻す
+    if (!toggle) queueMicrotask(() => (document.querySelector(`.bubble[data-part="${part}"]`) as HTMLElement | null)?.focus())
+  }
+  function changeView(v: Role) {
+    toggle = null
+    view = v
+  }
+  function onWindowKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && toggle) {
+      e.preventDefault()
+      closeOne()
+    }
+  }
+
+  const focusLevels = $derived(toggle && parts ? parts[toggle.part] : null)
 </script>
+
+<svelte:window onkeydown={onWindowKeydown} />
 
 <article class="technique">
   <header class="head">
@@ -97,7 +127,7 @@
     <p class="note">この技のアニメーション（pose.json）はまだありません。</p>
   {:else}
     <div class="controls-top">
-      <ViewTabs {view} controls="technique-stage" onchange={(v) => (view = v)} />
+      <ViewTabs {view} controls="technique-stage" onchange={changeView} />
       {#if technique && technique.attacks.length > 1}
         <label class="attack">
           <span>攻撃法</span>
@@ -110,7 +140,7 @@
       {/if}
     </div>
 
-    <div id="technique-stage" role="tabpanel" aria-labelledby="view-tab-{view}">
+    <div id="technique-stage" class="stage-block" class:focused={toggle !== null} role="tabpanel" aria-labelledby="view-tab-{view}">
       <TechniqueStage
         {scene}
         {view}
@@ -119,9 +149,22 @@
         {parts}
         {paused}
         toggleId={TOGGLE_ID}
+        focusPart={toggle?.part ?? null}
+        depth={toggle?.depth ?? 0}
         onselect={onSelectPart}
       />
     </div>
+
+    <PartToggle
+      id={TOGGLE_ID}
+      role={view}
+      part={toggle?.part ?? null}
+      depth={toggle?.depth ?? 0}
+      levels={focusLevels}
+      {kfLabel}
+      ondeepen={deepen}
+      oncloseone={closeOne}
+    />
 
     <label class="scrub">
       <span class="visually-hidden">再生位置</span>
@@ -194,6 +237,14 @@
     background: var(--washi-light);
     border: 1px solid var(--sumi-tan);
     border-radius: var(--radius-s);
+  }
+  /* 部位を開いている間は骨格を画面上部に留め、下の解説を読みながら見られるようにする */
+  .stage-block.focused {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--washi);
+    padding-top: var(--space-1);
   }
   .scrub input {
     width: 100%;
