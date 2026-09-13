@@ -1,6 +1,8 @@
 <script lang="ts">
+  import GlossaryList from './components/GlossaryList.svelte'
   import HomeView from './components/HomeView.svelte'
   import TechniqueView from './components/TechniqueView.svelte'
+  import TermView from './components/TermView.svelte'
   import { router } from './lib/router.svelte'
 </script>
 
@@ -8,6 +10,12 @@
   {#key router.route.id}
     <TechniqueView id={router.route.id} kind={router.route.kind} />
   {/key}
+{:else if router.route.name === 'term'}
+  {#key router.route.id}
+    <TermView id={router.route.id} />
+  {/key}
+{:else if router.route.name === 'glossary'}
+  <GlossaryList />
 {:else if router.route.name === 'home'}
   <HomeView />
 {:else}

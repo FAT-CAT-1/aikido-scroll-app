@@ -53,6 +53,8 @@
   async function measure() {
     if (!wrap) return
     await tick()
+    // 待っている間に画面を離れた（コンポーネントが破棄された）場合は何もしない
+    if (!wrap?.isConnected) return
     anchors = readAnchors(wrap, view)
     const map = new Map<Part, HTMLElement>()
     for (const p of [...TOP_PARTS, ...BOTTOM_PARTS]) {
