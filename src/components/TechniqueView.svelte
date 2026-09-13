@@ -1,9 +1,11 @@
 <script lang="ts">
-  // 技詳細（S-03）。T13 時点：pose.json から Timeline を作り、スライダーで 0〜1 を動かすと補間される
+  // 技詳細（S-03）。pose.json から Timeline を作り、スライダーで 0〜1 を動かすと補間される（T13）。
+  // 視点切替（T15）：取り／受けタブで反転＋レイヤー入替＋濃淡。切替時も progress（at）を保つ
   import Body from '../lib/anim/Body.svelte'
   import { createPoseTimeline, nearestKeyframeIndex, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
   import { loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
-  import type { PoseData, Technique } from '../lib/content/types'
+  import type { PoseData, Role, Technique } from '../lib/content/types'
+  import ViewTabs from './ViewTabs.svelte'
 
   interface Props {
     id: string
@@ -15,6 +17,7 @@
   let poseData = $state.raw<PoseData | null>(null)
   let scene = $state.raw<ScenePose | null>(null)
   let progress = $state(0)
+  let view = $state<Role>('tori')
   let loading = $state(true)
   let timeline: PoseTimeline | null = null
 
@@ -57,8 +60,9 @@
   {:else if !scene}
     <p class="note">この技のアニメーション（pose.json）はまだありません。</p>
   {:else}
-    <div class="stage">
-      <Body pose={scene} ground={poseData?.ground} label={`${technique?.name_ja ?? id}の取りと受けの動き`} />
+    <ViewTabs {view} controls="technique-stage" onchange={(v) => (view = v)} />
+    <div class="stage" id="technique-stage" role="tabpanel" aria-labelledby="view-tab-{view}">
+      <Body pose={scene} {view} ground={poseData?.ground} label={`${technique?.name_ja ?? id}の動き（${view === 'tori' ? '取り' : '受け'}の視点）`} />
     </div>
     <label class="scrub">
       <span class="visually-hidden">再生位置</span>
