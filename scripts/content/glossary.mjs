@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import { unified } from 'unified'
 import { charCount } from './inline.mjs'
-import { checkVideos, nodeText, toArray } from './technique.mjs'
+import { checkVideos, nodeText, normalizeSources, toArray } from './technique.mjs'
 
 const CATEGORIES = ['taisabaki', 'waza', 'kihon', 'shiso', 'rekishi', 'soshiki', 'buki', 'hito']
 const STATUSES = ['draft', 'review', 'approved']
@@ -42,12 +42,13 @@ export function parseGlossary({ file, rel, raw, renderer, diag }) {
   if (status === 'approved' && !d.reviewer) diag.error(top, 'status: approved なのに reviewer が空です')
 
   const { sections, slice } = sectionsOf(fm.content)
+  const sources = normalizeSources(d.sources)
   const terms = new Set()
   const links = new Set()
   const render = (name, opts = {}) => {
     const sec = sections.find((s) => s.name === name)
     if (!sec || !sec.nodes.length) return null
-    const r = renderer.render(slice(sec.nodes), { loc: top, where: name, ...opts })
+    const r = renderer.render(slice(sec.nodes), { loc: top, where: name, sources, ...opts })
     r.terms.forEach((t) => t !== id && terms.add(t))
     r.links.forEach((t) => links.add(t))
     return r
@@ -96,7 +97,7 @@ export function parsePage({ file, rel, raw, renderer, diag }) {
   if (!title && h1) title = h1[1].trim()
   if (h1) body = body.replace(h1[0], '')
   if (!title) diag.warn(`${rel}:1`, 'title（frontmatter か「# 見出し」）がありません')
-  const r = renderer.render(body, { loc: `${rel}:1`, where: '' })
+  const r = renderer.render(body, { loc: `${rel}:1`, where: '', sources: normalizeSources(fm.data.sources) })
   return {
     name,
     title,
