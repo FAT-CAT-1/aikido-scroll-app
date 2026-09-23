@@ -8,6 +8,7 @@
 
 ## いまの中身
 - 技（5級）：一教（表・裏）、四方投げ（表・裏）、入身投げ、座技呼吸法。原稿はすべて `status: draft`（師範の校閲前。画面に「校閲前」と出る）、pose は記述から推定した初版
+- 技アニメ：一教（表）は 3D（Three.js。カメラは斜め・横・真上）、他の5技は 2D。3D の動きも記述からの推定（撮影できたら動画から作った動きに置き換える。docs/animation-spec.md §13）
 - 単語集 214語、章ページ（沿革・理念）
 - 基礎動作の章は原稿準備中
 
@@ -31,8 +32,8 @@
 3. 校閲が済んだら frontmatter の `status` を `review` → `approved` にする。
 
 ## ポーズを直す
-`tools/pose-editor.html` をブラウザで開き、`content/poses/*.pose.json` を読み込んで修正・保存する（手順は `docs/animation-spec.md` §8-3）。
-保存したファイルを元の場所に上書きし、`npm run build:content` で検証する。
+- 2D：`tools/pose-editor.html` をブラウザで開き、`content/poses/*.pose.json` を読み込んで修正・保存する（手順は `docs/animation-spec.md` §8-3）。保存したファイルを元の場所に上書きし、`npm run build:content` で検証する。
+- 3D：`tools/pose3d-seed/{技id}.mjs` の数値（腰の位置・体の向き・足首・手の位置）を直して `node tools/pose3d-seed/{技id}.mjs --force` で `content/poses3d/` に書き出し、`npm run build:content` で検証する（`docs/animation-spec.md` §13-6）。
 
 ## 記録
 - `docs/decisions.md` — 仕様に無い点・文書間の食い違いに置いた仮置きの決定（D-01〜）

@@ -22,7 +22,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash(npm:*), Bash(npx:*), Bash(git
 | 領域 | 採用 | 禁止 |
 |---|---|---|
 | フレームワーク | Vite + Svelte 5 (runes) + TypeScript | React/Vue等への差し替え |
-| 技アニメ | inline SVG + GSAP Timeline（巻物スクロールで scrub） | AI生成動画・Lottie・GIF を技アニメ本体に使用 |
+| 技アニメ | 3D（Three.js の WebGL。`content/poses3d/`）＋ WebGL が使えない端末・3D ポーズが無い技は inline SVG。進捗は GSAP（巻物スクロールで scrub）。docs/animation-spec.md §13 | AI生成動画・Lottie・GIF・Unity 等のゲームエンジンを技アニメ本体に使用 |
 | 巻物 | CSS Scroll Snap（x mandatory）+ `overscroll-behavior-x: contain` / scroll-driven animations は `@supports` 付き、旧iOSは GSAP ScrollTrigger でフォールバック | — |
 | PWA | vite-plugin-pwa（Workbox, `registerType:'autoUpdate'`） | 手書きService Worker |
 | コンテンツ | gray-matter + remark + remark-wiki-link（`[[用語]]`→単語集アンカー） | 実行時の正規表現置換 |

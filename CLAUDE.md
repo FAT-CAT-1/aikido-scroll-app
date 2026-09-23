@@ -1,7 +1,7 @@
 # 合氣道徹底解説アプリ（aikido-scroll-app）
 
 獨協大学合氣道部向け。和風（墨絵・『大神』風）の巻物横スクロールUIで、初段までの技を
-「取り／受け」のSVGアニメーションと6部位×5階層（キーフレームごと）のトグル解説で学べる PWA。
+「取り／受け」の3D（Three.js）アニメーションと6部位×5階層（キーフレームごと）のトグル解説で学べる PWA。
 単独開発・認証なし・GitHub Pages 公開。
 
 ## 分業
@@ -16,12 +16,12 @@
 4. ディレクトリ削除・force push・依存の大量変更など危険な操作は必ずユーザーに確認。
 
 ## 絶対ルール（違反はレビューで差し戻し）
-1. 技アニメ本体は **inline SVG + GSAP Timeline**。AI生成動画（Higgsfield等）・Lottie は技アニメに使わない。
-2. 部位IDは `#{role}-{part}[-{f|b}]` 命名を厳守（role=uke|tori, part=eye|face|shoulder|hara|knee|foot, f=手前/b=奥。`docs/animation-spec.md` が正）。
+1. 技アニメ本体は **3D（Three.js の WebGL）**。3D ポーズの無い技・WebGL が使えない端末は **inline SVG** の 2D。進捗の制御は GSAP。AI生成動画（Higgsfield等）・Lottie・Unity 等のゲームエンジンは技アニメに使わない（2026-09-23 決定。docs/decisions.md D-36、animation-spec §13）。
+2. 部位IDは `#{role}-{part}[-{f|b}]` 命名を厳守（role=uke|tori, part=eye|face|shoulder|hara|knee|foot, f=手前/b=奥。3D では f＝カメラに近い側。`docs/animation-spec.md` が正）。
 3. データ構造は `technique(表裏別) → keyframes[] → (tori|uke) → parts(6) → {l1..l5}`（`docs/content-spec.md` が正）。
 4. `user-scalable=no` やページ全体の `touch-action:none` でズームを殺さない（a11y）。ピンチ判定はアニメ領域内限定。
 5. トグルを開くたび `history.pushState`、`popstate` で1段閉じる。多段は depth スタックで管理。
-6. スタック固定: Vite + Svelte 5 (runes) + TypeScript / vite-plugin-pwa / GSAP / Google Fonts（Yuji Syuku, Shippori Mincho, Zen Old Mincho）。
+6. スタック固定: Vite + Svelte 5 (runes) + TypeScript / vite-plugin-pwa / GSAP / Three.js（技の 3D。2026-09-23 追加）/ Google Fonts（Yuji Syuku, Shippori Mincho, Zen Old Mincho）。
 7. 原稿の専門用語は `[[用語]]` 記法。ビルド時に単語集リンクへ変換し、未定義用語は警告。
 
 ## コマンド
@@ -45,7 +45,7 @@ public/    manifest, icons, fonts(サブセット)
 
 ## 文書の優先順位（矛盾したらこの順）
 1. `docs/content-spec.md`（原稿の構造：技×表裏で1ファイル、キーフレームごと、5階層、信頼マーク、`[[用語]]`）
-2. `docs/animation-spec.md`（15関節 f/b 命名、pose.json、視点切替、再生/スクロール同期、ポーズエディタ）
+2. `docs/animation-spec.md`（15関節 f/b 命名、pose.json、視点切替、再生/スクロール同期、ポーズエディタ、§13 の 3D）
 3. `docs/backlog.md`（タスク順・完了条件・レビュー基準）
 4. `docs/design-complete.md`（A部 基本設計＋B部 デザインシステム。旧 design.md / design-system.md を統合）
 5. `docs/requirements.md` / `docs/research.md` / `docs/roadmap.md`（初期版。上位と食い違う記述は上位が正）
