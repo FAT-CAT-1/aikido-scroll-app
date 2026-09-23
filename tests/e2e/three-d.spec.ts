@@ -1,5 +1,5 @@
 // 3D の技アニメ（docs/animation-spec.md §13）：カメラの切り替え、部位の起点、WebGL が使えない端末での 2D への切り替え
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 import { openTechnique } from './helpers'
 
 test('3D で描き、カメラ（斜め・横・真上）を切り替えても吹き出しと部位の起点が残る', async ({ page }) => {
@@ -59,7 +59,8 @@ test('部位を開くと、その部位を中心に 3D のまま拡大する（�
   expect(d1 / d0).toBeLessThan(1.45)
 })
 
-test('WebGL が使えない端末では 2D の骨格で表示し、吹き出し・トグルはそのまま使える', async ({ page }) => {
+/** WebGL が使えない端末のふりをする */
+async function withoutWebGL(page: Page) {
   await page.addInitScript(() => {
     const orig = HTMLCanvasElement.prototype.getContext
     HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, type: string, ...rest: unknown[]) {
@@ -67,6 +68,10 @@ test('WebGL が使えない端末では 2D の骨格で表示し、吹き出し�
       return (orig as (...a: unknown[]) => unknown).call(this, type, ...rest)
     } as typeof HTMLCanvasElement.prototype.getContext
   })
+}
+
+test('WebGL が使えない端末では 2D の骨格で表示し、吹き出し・トグルはそのまま使える', async ({ page }) => {
+  await withoutWebGL(page)
   await openTechnique(page)
   await expect(page.locator('svg.body')).toBeVisible()
   await expect(page.locator('.body3d')).toHaveCount(0)
@@ -75,7 +80,9 @@ test('WebGL が使えない端末では 2D の骨格で表示し、吹き出し�
   await expect(page.locator('#part-toggle')).toBeVisible()
 })
 
-test('3D の無い技（座り技呼吸法）でも、記述からの推定の 2D には注記が出て読み上げにも含まれる', async ({ page }) => {
+test('2D で表示するときも、記述からの推定の動きには注記が出て読み上げにも含まれる', async ({ page }) => {
+  // 全ての技に 3D ができたので（D-48）、WebGL が使えない端末の 2D で確かめる
+  await withoutWebGL(page)
   await openTechnique(page, 'suwariwaza-kokyuho')
   await expect(page.locator('.body3d')).toHaveCount(0)
   // decisions D-45：2D のポーズも source が estimate（または無し）なら注記を出す
@@ -83,7 +90,7 @@ test('3D の無い技（座り技呼吸法）でも、記述からの推定の 2
   await expect(page.locator('svg.body')).toHaveAttribute('aria-label', /推定の動き/)
 })
 
-for (const id of ['ikkyo-ura', 'iriminage', 'shihonage-omote', 'shihonage-ura']) test(`${id} も 3D で描き、推定の注記が出る（D-48）`, async ({ page }) => {
+for (const id of ['ikkyo-ura', 'iriminage', 'shihonage-omote', 'shihonage-ura', 'suwariwaza-kokyuho']) test(`${id} も 3D で描き、推定の注記が出る（D-48）`, async ({ page }) => {
   await openTechnique(page, id)
   const body = page.locator('.body3d')
   test.skip((await body.count()) === 0, 'この端末では WebGL が使えず 2D で表示')

@@ -203,7 +203,7 @@ export function figure(s, label) {
 export const STAND_HIP = 0.97
 
 /** 跪座（膝を床に着き、つま先を立てて踵に腰を下ろす）。center は両膝の間の床の点 */
-export function kiza({ center, yaw, spread = 0.4, back = 0.3, hipY = 0.4, lean = 0, ...rest }, label) {
+export function kiza({ center, yaw, spread = 0.4, back = 0.3, hipY = 0.4, lean = 0, tucked = true, ...rest }, label) {
   const f = fwd(yaw)
   const r = rightOf(yaw)
   const c = [center[0], 0, center[1]]
@@ -215,11 +215,16 @@ export function kiza({ center, yaw, spread = 0.4, back = 0.3, hipY = 0.4, lean =
       hip,
       yaw,
       lean,
-      legs: { l: { kneel: [kneeL[0], kneeL[2]], tucked: true }, r: { kneel: [kneeR[0], kneeR[2]], tucked: true } },
+      legs: { l: { kneel: [kneeL[0], kneeL[2]], tucked }, r: { kneel: [kneeR[0], kneeR[2]], tucked } },
       ...rest,
     },
     label,
   )
+}
+
+/** 正座（膝を床に着き、足の甲を寝かせて踵の上に腰を下ろす）。center は両膝の間の床の点 */
+export function seiza(s, label) {
+  return kiza({ spread: 0.26, back: 0.37, hipY: 0.33, tucked: false, ...s }, label)
 }
 
 /** うつ伏せ（腹這い）。hip は床の点 [x, z]、headYaw は頭の方向。顔は faceSide（'l'|'r'）の側へ向けて頬を畳に */
