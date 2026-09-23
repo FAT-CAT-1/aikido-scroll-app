@@ -1,12 +1,12 @@
 // 単語集（content/glossary/*.md）と章ページ（content/pages/*.md）の解析（content-spec §3）
 
 import path from 'node:path'
-import matter from 'gray-matter'
 import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import { unified } from 'unified'
+import { parseFrontmatter } from './frontmatter.mjs'
 import { charCount } from './inline.mjs'
-import { checkVideos, nodeText, normalizeSources, toArray } from './technique.mjs'
+import { checkVideos, ID_RE, nodeText, normalizeSources, toArray } from './technique.mjs'
 
 const CATEGORIES = ['taisabaki', 'waza', 'kihon', 'shiso', 'rekishi', 'soshiki', 'buki', 'hito']
 const STATUSES = ['draft', 'review', 'approved']
@@ -29,11 +29,12 @@ function sectionsOf(body) {
  * @param {{ file: string, rel: string, raw: string, renderer: any, diag: import('./diagnostics.mjs').Diagnostics }} args
  */
 export function parseGlossary({ file, rel, raw, renderer, diag }) {
-  const fm = matter(raw)
-  const d = fm.data
   const top = `${rel}:1`
+  const fm = parseFrontmatter(raw, diag, top)
+  const d = fm.data
   const id = String(d.id ?? '')
   const base = path.basename(file, '.md')
+  if (!ID_RE.test(id)) diag.error(top, `id「${id}」は小文字ローマ字・数字・ハイフンだけで書く`)
   if (id !== base) diag.error(top, `id「${id}」がファイル名「${base}」と一致しません`)
   for (const key of ['name_ja', 'reading']) if (!d[key]) diag.error(top, `${key} がありません`)
   if (!CATEGORIES.includes(d.category)) diag.error(top, `category は ${CATEGORIES.join('|')} のいずれか（現在: ${d.category}）`)
@@ -89,7 +90,7 @@ export function parseGlossary({ file, rel, raw, renderer, diag }) {
  * @param {{ file: string, rel: string, raw: string, renderer: any, diag: import('./diagnostics.mjs').Diagnostics }} args
  */
 export function parsePage({ file, rel, raw, renderer, diag }) {
-  const fm = matter(raw)
+  const fm = parseFrontmatter(raw, diag, `${rel}:1`)
   const name = path.basename(file, '.md')
   let body = fm.content
   let title = fm.data.title ? String(fm.data.title) : ''

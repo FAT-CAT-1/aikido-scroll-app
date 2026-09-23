@@ -50,6 +50,8 @@ jobs:
 
   deploy:
     needs: build
+    # 公開は main からだけ（workflow_dispatch を別の枝で起こしても公開しない。docs/decisions.md D-44）
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write

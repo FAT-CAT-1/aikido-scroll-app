@@ -5,6 +5,8 @@
 // - kf は技の原稿（content/techniques/{id}.md）の kf と id・at が一致する。原稿に無い「間の kf」は between: true を付けて足せる
 // - contacts：その kf と次の kf の両方に同じ組があれば、その区間は手をつかんだ相手の部位に付けたままにする
 
+import { EASE_RE } from './pose.mjs'
+
 export const JOINTS3D = /** @type {const} */ ([
   'head',
   'nose',
@@ -103,6 +105,10 @@ export function validatePose3D({ rel, id, pose, technique, diag }) {
       diag.error(loc, `${where} at が前の kf 以下です（時刻の順に並べる）`)
       ok = false
     } else prevAt = kf.at
+    if (kf?.ease !== undefined && (typeof kf.ease !== 'string' || !EASE_RE.test(kf.ease))) {
+      diag.error(loc, `${where} ease は GSAP の名前（例 power2.inOut）`)
+      ok = false
+    }
     for (const role of ROLES) {
       const fig = kf?.[role]
       if (!fig || typeof fig !== 'object' || !fig.joints) {

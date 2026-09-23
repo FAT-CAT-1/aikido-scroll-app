@@ -192,7 +192,16 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   }
 
   const outputs = new Map()
-  const put = (p, obj) => outputs.set(path.join(outDir, p), typeof obj === 'string' ? obj : JSON.stringify(obj))
+  // 出力先は必ず src/generated の中（id に「../」などが入っても外へ書かない。docs/decisions.md D-44）
+  const put = (p, obj) => {
+    const file = path.join(outDir, p)
+    const inside = path.relative(outDir, file)
+    if (!inside || inside.startsWith('..') || path.isAbsolute(inside)) {
+      diag.error('build:content', `出力先「${p}」が src/generated の外になるので書き出しません`)
+      return
+    }
+    outputs.set(file, typeof obj === 'string' ? obj : JSON.stringify(obj))
+  }
   put('index.json', index)
   put('glossary-index.json', glossaryIndex)
   for (const t of techniques) put(`techniques/${t.id}.json`, t)

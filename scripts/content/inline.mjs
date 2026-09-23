@@ -27,6 +27,8 @@ export function charCount(text) {
 const MARK_RE = /\{\{([fv]):|\}\}/g
 const TOKEN_RE = /\[\[([^[\]|\n]+?)(?:\|([^[\]\n]+?))?\]\]|@src:([A-Za-z0-9_-]+)/g
 const PHRASING_PARENTS = new Set(['paragraph', 'heading', 'tableCell'])
+/** 原稿のリンクに許す URL（先頭の空白や大文字の混ぜ書きで判定をすり抜けないよう、先頭から完全に一致させる） */
+const SAFE_URL_RE = /^(?:https?:\/\/|mailto:|#\/)/
 
 const parser = unified().use(remarkParse).use(remarkGfm)
 const compiler = unified().use(remarkRehype).use(rehypeStringify)
@@ -202,6 +204,29 @@ export function createRenderer({ resolveTerm, diag }) {
     })
   }
 
+  /**
+   * リンク先の検査（docs/decisions.md D-44）。{@html} で画面に出すので、実行できる URL（javascript: など）を通さない。
+   * 許すのは https / http / mailto と、アプリ内の「#/」だけ。画像は外部に閲覧者の情報が漏れるので使わない。
+   * 違反はエラー（ビルドが止まる）にし、dev サーバーでも実行されないよう URL を消しておく
+   */
+  function checkUrls(node) {
+    if (!node.children) return
+    node.children = node.children.flatMap((c) => {
+      if (c.type === 'image' || c.type === 'imageReference') {
+        diag.error(ctx.loc, `${where()}画像は原稿に書けません（${c.alt ?? ''}）`)
+        return c.alt ? [{ type: 'text', value: c.alt }] : []
+      }
+      if ((c.type === 'link' || c.type === 'definition') && !SAFE_URL_RE.test(c.url ?? '')) {
+        diag.error(ctx.loc, `${where()}リンク先は https:// か http:// か mailto: で書く（${String(c.url).slice(0, 40)}）`)
+        if (c.type === 'definition') return [{ ...c, url: '' }]
+        checkUrls(c)
+        return c.children
+      }
+      checkUrls(c)
+      return [c]
+    })
+  }
+
   function visit(node) {
     if (PHRASING_PARENTS.has(node.type)) {
       node.children = transformPhrasing(node.children ?? [])
@@ -235,6 +260,7 @@ export function createRenderer({ resolveTerm, diag }) {
       diag.warn(loc, `${where()}1段落の文章として解釈できません（行頭の「1. 」「# 」「> 」などを避ける）`)
     }
     visit(tree)
+    checkUrls(tree)
     const text = plainText(tree.children).replace(/\n+$/, '')
     const hast = compiler.runSync(tree)
     let html = compiler.stringify(/** @type {any} */ (hast)).trim()

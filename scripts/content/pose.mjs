@@ -1,5 +1,8 @@
 // ポーズデータ（content/poses/{id}.pose.json）の検証（animation-spec §3, §10）
 
+/** GSAP の ease 名（知らない名前だと実行時に技のアニメが止まるので、ビルドで弾く。3D と共通。D-44） */
+export const EASE_RE = /^(?:none|(?:power[0-4]|sine|expo|circ|back|elastic|bounce)(?:\.(?:in|out|inOut))?(?:\(\s*\d+(?:\.\d+)?(?:\s*,\s*\d+(?:\.\d+)?)*\s*\))?)$/
+
 export const JOINTS = /** @type {const} */ ([
   'head',
   'neck',
@@ -85,7 +88,7 @@ export function validatePose({ rel, id, pose, technique, diag }) {
     const w = `kf[${i}]=${kf?.id}`
     if (!isNum(kf.at)) err(`${w}: at が数値ではありません`)
     if (i > 0 && !(kf.at > pose.keyframes[i - 1].at)) err(`${w}: at が単調増加していない、または重複しています`)
-    if (kf.ease !== undefined && typeof kf.ease !== 'string') err(`${w}: ease は文字列（例 power2.inOut）`)
+    if (kf.ease !== undefined && (typeof kf.ease !== 'string' || !EASE_RE.test(kf.ease))) err(`${w}: ease は GSAP の名前（例 power2.inOut）`)
     for (const role of ['tori', 'uke']) {
       const r = kf[role]
       if (!r) {

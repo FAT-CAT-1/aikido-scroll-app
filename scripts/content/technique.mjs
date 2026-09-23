@@ -1,10 +1,10 @@
 // 技・基礎ファイル（content/techniques/*.md, content/kihon/**/*.md）の構造解析と検証（content-spec §2, §5, §6）
 
 import path from 'node:path'
-import matter from 'gray-matter'
 import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import { unified } from 'unified'
+import { parseFrontmatter } from './frontmatter.mjs'
 import { charCount } from './inline.mjs'
 
 export const PARTS = /** @type {const} */ ([
@@ -18,6 +18,8 @@ export const PARTS = /** @type {const} */ ([
 const PART_BY_LABEL = Object.fromEntries(PARTS)
 const LABEL_BY_PART = Object.fromEntries(PARTS.map(([l, k]) => [k, l]))
 export const ROLE_BY_LABEL = { 取り: 'tori', 受け: 'uke' }
+/** id の形（content-spec §1：小文字ローマ字・ハイフン区切り）。出力ファイル名にも使うので、これ以外は通さない */
+export const ID_RE = /^[a-z0-9][a-z0-9-]*$/
 export const LIMITS = { l1: 20, l2: 60, l3: 150, l4: 300, l5: 600 }
 const LEVELS = /** @type {const} */ (['l1', 'l2', 'l3', 'l4', 'l5'])
 
@@ -58,9 +60,14 @@ export function checkVideos(videos, loc, diag) {
     diag.error(loc, 'videos は配列で書く')
     return []
   }
-  return videos.map((v, i) => {
+  return videos.flatMap((v, i) => {
     const w = `videos[${i}]`
     const url = String(v?.url ?? '')
+    // リンクとして画面に出すので、https 以外（javascript: など）はエラーにして出力しない（D-44）
+    if (!/^https:\/\//.test(url)) {
+      diag.error(loc, `${w}: URL は https:// で始める`)
+      return []
+    }
     if (!/^https:\/\/(www\.youtube\.com\/watch\?v=[\w-]+(&t=\d+s?)?|youtu\.be\/[\w-]+(\?t=\d+s?)?)$/.test(url)) {
       diag.warn(loc, `${w}: URL が YouTube の規定形式ではありません（watch?v=ID&t=秒 / youtu.be/ID?t=秒）`)
     }
@@ -71,7 +78,7 @@ export function checkVideos(videos, loc, diag) {
     const note = String(v?.note ?? '')
     if (!note) diag.warn(loc, `${w}: note（何が分かる動画か、30字以内）がありません`)
     else if (charCount(note) > 30) diag.warn(loc, `${w}: note が30字を超えています`)
-    return { url, instructor: String(v?.instructor ?? ''), rank, note }
+    return [{ url, instructor: String(v?.instructor ?? ''), rank, note }]
   })
 }
 
@@ -94,18 +101,19 @@ function splitBy(nodes, depth) {
  * }} args
  */
 export function parseTechnique({ file, rel, raw, type, renderer, diag }) {
-  const fm = matter(raw)
+  const top = `${rel}:1`
+  const fm = parseFrontmatter(raw, diag, top)
   const data = fm.data
   const body = fm.content
   const lineOffset = raw.slice(0, raw.length - body.length).split('\n').length - 1
   const locOf = (node) => `${rel}:${(node?.position?.start.line ?? 0) + lineOffset}`
-  const top = `${rel}:1`
   const slice = (node) => body.slice(node.position.start.offset, node.position.end.offset)
   const sliceAll = (nodes) => nodes.map(slice).join('\n\n')
 
   // ---- frontmatter ----
   const id = String(data.id ?? '')
   const base = path.basename(file, '.md')
+  if (!ID_RE.test(id)) diag.error(top, `id「${id}」は小文字ローマ字・数字・ハイフンだけで書く`)
   if (id !== base) diag.error(top, `id「${id}」がファイル名「${base}」と一致しません`)
   if (data.type !== type) diag.warn(top, `type は「${type}」のはずです（現在: ${data.type}）`)
   for (const key of ['name_ja', 'reading']) if (!data[key]) diag.error(top, `${key} がありません`)
@@ -405,5 +413,5 @@ export function parseTechnique({ file, rel, raw, type, renderer, diag }) {
 
 /** 名前解決用に frontmatter だけ読む */
 export function readFrontmatter(raw) {
-  return matter(raw).data
+  return parseFrontmatter(raw).data
 }

@@ -2,6 +2,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import contentPlugin from './scripts/vite-plugin-content.mjs'
+import cspPlugin from './scripts/vite-plugin-csp.mjs'
 
 // GitHub Pages のサブパス配信（design-complete A-10）。カスタムドメイン時は '/'
 const base = '/aikido-scroll-app/'
@@ -12,6 +13,8 @@ export default defineConfig({
     // content/ → src/generated/（起動・ビルド時に生成、dev は変更を監視）
     contentPlugin(),
     svelte(),
+    // 本番ビルドの index.html に CSP（docs/decisions.md D-44）
+    cspPlugin(),
     // design-complete A-9。manifest はここで定義する（docs/decisions.md D-09〜D-12）
     VitePWA({
       registerType: 'autoUpdate',

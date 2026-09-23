@@ -98,8 +98,9 @@
         <section class="block" aria-labelledby="video-h">
           <h2 id="video-h">動画（外部サイト）</h2>
           <ul class="videos">
-            {#each entry.videos as v (v.url)}
+            {#each entry.videos.filter((v) => v.url.startsWith('https://')) as v (v.url)}
               <li>
+                <!-- ビルドで https 以外は弾いているが、画面でも https だけをリンクにする（D-44） -->
                 <a href={v.url} target="_blank" rel="noopener noreferrer">{v.note || '動画を開く'}</a>
                 <span class="who">{v.instructor}（{VIDEO_RANK_LABEL(v.rank)}）</span>
               </li>
