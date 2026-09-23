@@ -107,12 +107,12 @@
     margin-bottom: var(--space-2);
   }
   .filters button {
-    min-height: 40px;
+    min-height: var(--tap-min);
     padding: 0 var(--space-2);
     font: inherit;
     font-size: var(--text-s);
     background: var(--washi-light);
-    border: 1px solid var(--sumi-tan);
+    border: 1px solid var(--line-ui);
     border-radius: var(--radius-s);
     color: var(--sumi-shou);
     cursor: pointer;

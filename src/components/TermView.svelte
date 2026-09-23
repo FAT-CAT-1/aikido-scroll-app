@@ -188,7 +188,7 @@
     align-items: center;
     min-height: var(--tap-min);
     padding: 0 var(--space-3);
-    border: 1px solid var(--sumi-tan);
+    border: 1px solid var(--line-ui);
     border-radius: var(--radius-m);
     background: var(--washi-light);
     text-decoration: none;

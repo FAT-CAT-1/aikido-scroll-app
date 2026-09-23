@@ -18,9 +18,8 @@
 <style>
   .cams {
     display: inline-flex;
-    border: 1px solid var(--sumi-tan);
+    border: 1px solid var(--line-ui);
     border-radius: var(--radius-m);
-    overflow: hidden;
   }
   .cam {
     appearance: none;
@@ -34,8 +33,15 @@
     font-size: var(--text-s);
     cursor: pointer;
   }
+  /* 外枠で切り取らず（フォーカスの輪が隠れるため）、両端のボタンに角丸を付ける */
+  .cam:first-child {
+    border-radius: var(--radius-m) 0 0 var(--radius-m);
+  }
+  .cam:last-child {
+    border-radius: 0 var(--radius-m) var(--radius-m) 0;
+  }
   .cam + .cam {
-    border-left: 1px solid var(--sumi-tan);
+    border-left: 1px solid var(--line-ui);
   }
   .cam[aria-pressed='true'] {
     background: var(--sumi-shou);

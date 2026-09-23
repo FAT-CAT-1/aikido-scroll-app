@@ -41,7 +41,7 @@
     min-height: var(--tap-min);
     padding: var(--space-1) var(--space-2);
     background: var(--washi-light);
-    border: 1px solid var(--sumi-tan);
+    border: 1px solid var(--line-ui);
     border-radius: var(--radius-m);
     color: var(--sumi-shou);
     text-align: left;

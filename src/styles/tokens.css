@@ -9,6 +9,7 @@
   --sumi-juu: #555555; /* 重: 準本文・境界 */
   --sumi-tan: #8a8a8a; /* 淡: 補助・奥レイヤー（本文には使わない：和紙上 2.8:1） */
   --sumi-sei: #c9c4b8; /* 清: 最淡・下地の線 */
+  --line-ui: #7a7a7a; /* ボタン・入力欄など操作部品の枠線（和紙3色すべての上で 3:1 以上。D-43） */
   --shu: #b7282e; /* 朱: 強調1系統・師範差・帯矢印・落款（和紙上 5.1:1） */
   --washi: #efe8d8; /* 和紙: 背景 */
   --washi-deep: #e6dcc6; /* 和紙（濃）: 深層トグルの下地 */
@@ -32,7 +33,7 @@
   --font-heading: var(--font-fallback);
   --font-body: var(--font-fallback);
   --font-sub: var(--font-fallback);
-  --text-xs: 0.8125rem; /* 13px: 吹き出し・注記のみ */
+  --text-xs: 0.875rem; /* 14px: 吹き出し・注記のみ。DADS の下限 14px に合わせた（docs/decisions.md D-43） */
   --text-s: 0.875rem; /* 14px */
   --text-m: 1rem; /* 16px: 本文の最小 */
   --text-l: 1.25rem; /* 20px */

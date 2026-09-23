@@ -111,7 +111,7 @@
   }
   .depth-5 {
     --pad: var(--space-4);
-    /* 重（#555）の一般指導文でも 4.5:1 を保てる濃さまで（#e9e1cf 上で 5.8:1） */
+    /* 重（#555）の一般指導文でも 4.5:1 を保てる濃さまで（#e9e1cf 上で 5.73:1） */
     background: #e9e1cf;
     --ink: var(--sumi-shou);
   }
@@ -126,9 +126,11 @@
     font-size: var(--text-l);
   }
   /* フォーカス移動で見出しまでスクロールしたとき、上部に留めた骨格（高さ≒幅×0.6）の下に隠れないようにする */
-  h2,
-  h3 {
-    scroll-margin-top: min(calc(60vw + 48px), 520px);
+  @media (min-height: 640px) {
+    h2,
+    h3 {
+      scroll-margin-top: min(calc(60vw + 48px), 520px);
+    }
   }
   h2:focus {
     outline: none;

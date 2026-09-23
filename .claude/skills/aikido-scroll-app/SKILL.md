@@ -67,12 +67,14 @@ technique
 --sumi-shou:#1a1a1a  --sumi-nou:#333333  --sumi-juu:#555555
 --sumi-tan:#8a8a8a   --sumi-sei:#c9c4b8
 --shu:#b7282e        --washi:#efe8d8
+--line-ui:#7a7a7a（操作部品の枠線。和紙の上で 3:1 以上）
 余白: 8pxグリッド / 縦書き: writing-mode: vertical-rl
 筆線: SVG pathLength="1" + stroke-dasharray/offset アニメ
 和紙・にじみ: feTurbulence(+feDisplacementMap)
 ```
 - `prefers-reduced-motion: reduce` で筆線・ズームアニメを無効化。
-- コントラスト比 4.5:1 以上（`--sumi-tan` を本文に使わない）。
+- コントラスト比 4.5:1 以上（`--sumi-tan` を本文に使わない）。操作部品の枠線は 3:1 以上（`--line-ui`）。
+- 文字は 14px 以上（`--text-xs` も 14px）、押せる部品は 44×44px 以上（`--tap-min`）。デジタル庁デザインシステムとの照合（docs/decisions.md D-43）。
 
 ## 6. 禁止事項
 - 技アニメ本体に AI生成動画 / Lottie / GIF を使う

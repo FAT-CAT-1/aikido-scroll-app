@@ -187,7 +187,7 @@
 
 | ID | エピック | 主タスク |
 |---|---|---|
-| E10 | デザイン適用 | design-complete.md §2 の順：言語化→Stitchで思想の異なる3案（画像）→選定→トークン抽出→コード8割→Figma MCPで微調整ループ→アセット差替 |
+| E10 | デザイン適用 | design-complete.md §2 の順：言語化→Stitchで思想の異なる3案（画像）→選定→トークン抽出→コード8割→Figma MCPで微調整ループ→アセット差替（着手時に Anthropic 公式の frontend-design スキルを CLI の `/plugin install frontend-design@claude-plugins-official` で入れて使う。2026-09-23「AISKills の精査」での決定） |
 | E1' | 5級全技の原稿 | 一教裏／四方投げ表裏／入身投げ／座技呼吸法（各3h×2=F） |
 | E2' | 5級全技のpose | Opus初版→Dエディタ修正（各1.5h） |
 | E6' | 単語集200語 | 50語ずつ4回 |

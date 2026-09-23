@@ -161,6 +161,7 @@
     scroll-snap-stop: always;
     display: grid;
     padding: var(--space-5) var(--space-4) var(--space-3);
+    overflow-y: auto;
   }
 
   .inner {
@@ -189,7 +190,8 @@
   }
   .title {
     writing-mode: vertical-rl;
-    font-size: clamp(3rem, 16vw, 5.5rem);
+    /* 縦向きは幅で、横向きスマホ・200% 表示は高さで決める（4字の章題＋番号が章の高さに収まる大きさ。D-43） */
+    font-size: clamp(2rem, min(16vw, (100dvh - 200px) / 5), 5.5rem);
     letter-spacing: 0.15em;
     line-height: 1;
   }
@@ -297,13 +299,14 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0 var(--space-3);
+    gap: 0 var(--space-1);
     padding: var(--space-2) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
   }
   .toc-item {
     border: 0;
     background: none;
     min-height: var(--tap-min);
+    min-width: var(--tap-min);
     padding: 0 var(--space-1);
     font-size: var(--text-s);
     color: var(--sumi-juu);

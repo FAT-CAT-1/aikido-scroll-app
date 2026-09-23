@@ -62,8 +62,8 @@
 
   <div class="tools">
     <label class="search">
-      <span class="visually-hidden">用語を検索</span>
-      <input type="search" bind:value={query} placeholder="用語・読み・英語で検索" autocomplete="off" enterkeyhint="search" />
+      <span class="label">用語・読み・英語で検索</span>
+      <input type="search" bind:value={query} autocomplete="off" enterkeyhint="search" />
     </label>
     <div class="filters" role="group" aria-label="分類で絞り込む">
       <button type="button" aria-pressed={category === ''} onclick={() => (category = '')}>すべて</button>
@@ -111,6 +111,14 @@
     display: grid;
     gap: var(--space-2);
   }
+  .search {
+    display: grid;
+    gap: var(--space-1);
+  }
+  .search .label {
+    font-size: var(--text-s);
+    color: var(--sumi-juu);
+  }
   .search input {
     width: 100%;
     min-height: var(--tap-min);
@@ -128,12 +136,12 @@
   }
   .filters button,
   .kana button {
-    min-height: 36px;
+    min-height: var(--tap-min);
     padding: 0 var(--space-2);
     font: inherit;
     font-size: var(--text-s);
     background: var(--washi-light);
-    border: 1px solid var(--sumi-tan);
+    border: 1px solid var(--line-ui);
     border-radius: var(--radius-s);
     color: var(--sumi-shou);
     cursor: pointer;

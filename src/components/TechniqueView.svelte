@@ -410,16 +410,18 @@
     min-height: var(--tap-min);
     font: inherit;
     background: var(--washi-light);
-    border: 1px solid var(--sumi-tan);
+    border: 1px solid var(--line-ui);
     border-radius: var(--radius-s);
   }
   /* 部位を開いている間は骨格を画面上部に留め、下の解説を読みながら見られるようにする */
-  .stage-block.focused {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: var(--washi);
-    padding-top: var(--space-1);
+  @media (min-height: 640px) {
+    .stage-block.focused {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--washi);
+      padding-top: var(--space-1);
+    }
   }
   .kf-info {
     margin-top: var(--space-2);

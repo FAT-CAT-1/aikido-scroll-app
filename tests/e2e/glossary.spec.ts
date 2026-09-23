@@ -45,7 +45,7 @@ test('用語リンク→単語集→戻るで、同じ視点・再生位置・�
 test('単語集を検索・分類で絞り込み、用語から出てくる技へ移動できる', async ({ page }) => {
   await page.goto('./#/glossary')
   await expect(page.locator('.card').first()).toBeVisible()
-  await page.getByRole('searchbox', { name: '用語を検索' }).fill('イリミ')
+  await page.getByRole('searchbox', { name: '用語・読み・英語で検索' }).fill('イリミ')
   await expect(page.locator('.card .name').first()).toHaveText('入身')
   await page.locator('.card', { hasText: '入身' }).first().click()
   await expect(page.locator('#term-title')).toHaveText('入身')

@@ -21,9 +21,10 @@
   border: 1px solid currentColor;
   border-radius: 2px;
   font-family: var(--font-heading);
-  font-size: 0.62em;
-  line-height: 1.35;
-  vertical-align: 0.35em;
+  /* DADS の下限 14px（本文 16px の中で 14px、凡例の中でも 14px 未満にしない）。D-43 */
+  font-size: max(0.875em, var(--text-s));
+  line-height: 1.2;
+  vertical-align: 0.1em;
 }
 .t-f::after {
   content: '事';
@@ -55,11 +56,28 @@ a.term:focus-visible {
 /* 出典表記 */
 .src {
   font-family: var(--font-sub);
-  font-size: 0.8em;
+  font-size: max(0.875em, var(--text-s));
   color: var(--sumi-juu);
 }
 .src a {
   color: inherit;
+}
+
+/* 新しいタブで開くリンク：末尾に印を付け、読み上げでも伝える（DADS リンクテキスト。D-43） */
+a[target='_blank']::after {
+  content: '↗';
+  content: '↗' / '（新しいタブで開きます）';
+  margin-left: 0.15em;
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* 強制カラー（Windows のハイコントラスト）では背景の反転が消えるので、押された状態に枠を付ける */
+@media (forced-colors: active) {
+  button[aria-pressed='true'] {
+    outline: 2px solid CanvasText;
+    outline-offset: -4px;
+  }
 }
 
 .term-unresolved {

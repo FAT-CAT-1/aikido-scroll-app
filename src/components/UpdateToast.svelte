@@ -45,6 +45,11 @@
     font-size: var(--text-l);
     cursor: pointer;
   }
+  /* 墨の背景の上では朱の輪が 2.78:1 で見えにくいので、和紙色の輪を内側に描く（14.26:1。D-43） */
+  button:focus-visible {
+    outline-color: var(--washi);
+    outline-offset: -4px;
+  }
   @keyframes rise {
     from {
       opacity: 0;
