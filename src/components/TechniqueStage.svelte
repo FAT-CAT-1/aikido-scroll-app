@@ -26,6 +26,8 @@
     bounds3d?: { min: Vec3; max: Vec3 } | null
     /** 3D が描けなかったとき（WebGL が使えない端末） */
     onfallback3d?: () => void
+    /** 3D の動きの出どころの注記 */
+    note3d?: string
     view: Role
     ground?: number
     label: string
@@ -47,6 +49,7 @@
     body3d = null,
     bounds3d = null,
     onfallback3d = () => {},
+    note3d = '',
     view,
     ground = 520,
     label,
@@ -155,7 +158,7 @@
 
   <div class="drawing" bind:this={drawing} use:pinch={{ onpinch: handlePinch }}>
     {#if mode3d && scene3d && cam && body3d && bounds3d}
-      <Body3D scene={scene3d} {view} {cam} body={body3d} bounds={bounds3d} {label} focusPart={focused ? focusPart : null} {zoom} onfallback={onfallback3d} />
+      <Body3D scene={scene3d} {view} {cam} body={body3d} bounds={bounds3d} {label} focusPart={focused ? focusPart : null} {zoom} note={note3d} onfallback={onfallback3d} />
     {:else if scene}
       <Zoomable scale={zoom} originX={origin.x} originY={origin.y}>
         <Body pose={scene} {view} {ground} {label} />

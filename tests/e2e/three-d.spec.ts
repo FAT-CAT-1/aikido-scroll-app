@@ -7,6 +7,9 @@ test('3D で描き、カメラ（斜め・横・真上）を切り替えても�
   const body = page.locator('.body3d')
   test.skip((await body.count()) === 0, 'この端末では WebGL が使えず 2D で表示')
   await expect(page.locator('.body3d.ready')).toBeVisible({ timeout: 20_000 })
+  // 記述からの推定の動きには、常に注記が出る（decisions D-41）
+  await expect(page.locator('.body3d .note')).toContainText('推定の動き')
+  await expect(body).toHaveAttribute('aria-label', /推定の動き/)
   const cams = page.getByRole('group', { name: 'カメラの位置' })
   await expect(cams.getByRole('button', { name: '斜め', exact: true })).toHaveAttribute('aria-pressed', 'true')
   for (const [name, desc] of [

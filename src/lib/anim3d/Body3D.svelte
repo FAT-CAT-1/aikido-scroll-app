@@ -23,9 +23,11 @@
     focusPart?: Part | null
     /** 拡大率 1〜2 */
     zoom?: number
+    /** 動きの出どころの注記（記述からの推定など）。絵の左上に常に出す */
+    note?: string
     onfallback?: () => void
   }
-  let { scene, view, cam, body, bounds, label, focusPart = null, zoom = 1, onfallback = () => {} }: Props = $props()
+  let { scene, view, cam, body, bounds, label, focusPart = null, zoom = 1, note = '', onfallback = () => {} }: Props = $props()
 
   let box = $state<HTMLElement>()
   let canvas = $state<HTMLCanvasElement>()
@@ -165,8 +167,11 @@
   })
 </script>
 
-<div class="body3d" bind:this={box} class:ready role="img" aria-label={label}>
+<div class="body3d" bind:this={box} class:ready role="img" aria-label={note ? `${label}。${note}` : label}>
   <canvas bind:this={canvas} aria-hidden="true"></canvas>
+  {#if note}
+    <p class="note" aria-hidden="true">{note}</p>
+  {/if}
   {#if !ready}
     <p class="loading" aria-hidden="true">3D を準備中…</p>
   {/if}
@@ -200,6 +205,22 @@
   .marks {
     position: absolute;
     inset: 0;
+    pointer-events: none;
+  }
+  /* 推定の動きであることの注記（decisions D-41）。絵の邪魔にならない左上に小さく、ただし常に読める濃さで */
+  .note {
+    position: absolute;
+    left: var(--space-1);
+    top: var(--space-1);
+    margin: 0;
+    max-width: 70%;
+    padding: 2px var(--space-2);
+    border: 1px solid var(--sumi-tan);
+    border-radius: var(--radius-s);
+    background: var(--washi-light);
+    color: var(--sumi-nou);
+    font-size: var(--text-xs);
+    line-height: 1.5;
     pointer-events: none;
   }
   .mark {

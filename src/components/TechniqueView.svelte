@@ -298,6 +298,7 @@
         body3d={pose3d?.body ?? null}
         {bounds3d}
         onfallback3d={onFallback3d}
+        note3d={pose3d?.source === 'estimate' ? '推定の動き：実際の動きと異なる所があります' : ''}
         {view}
         ground={poseData?.ground}
         label={use3d ? sceneLabel(technique?.name_ja ?? id, view, camera) : `${technique?.name_ja ?? id}の動き（${view === 'tori' ? '取り' : '受け'}の視点）`}
