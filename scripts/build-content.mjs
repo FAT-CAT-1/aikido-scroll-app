@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// content/**/*.md ＋ content/poses/*.pose.json → src/generated/**/*.json（design-complete A-2）
+// content/**/*.md ＋ content/poses/*.pose.json ＋ content/poses3d/*.pose3d.json → src/generated/**/*.json（design-complete A-2）
 //
 //   npm run build:content          … 生成。エラーがあれば終了コード 1（CI 失敗）、警告はログのみ
 //   npm run build:content -- --quiet
@@ -10,7 +10,8 @@
 //   techniques/{id}.json       技（content-spec §5）  kihon/{id}.json  基礎
 //   glossary/{id}.json         用語（used_in 付き）
 //   pages/{name}.json          章ページ
-//   poses/{id}.json            検証済みポーズ
+//   poses/{id}.json            検証済みポーズ（2D）
+//   poses3d/{id}.json          検証済みポーズ（3D。標準体型 _body3d.json を body に同梱）
 //   unresolved-terms.txt       未解決の [[用語]]（ある場合のみ）
 
 import { existsSync } from 'node:fs'
@@ -21,6 +22,7 @@ import { Diagnostics } from './content/diagnostics.mjs'
 import { parseGlossary, parsePage } from './content/glossary.mjs'
 import { createRenderer } from './content/inline.mjs'
 import { checkPoseWarnings, validatePose } from './content/pose.mjs'
+import { checkPose3DWarnings, validatePose3D } from './content/pose3d.mjs'
 import { parseTechnique, readFrontmatter, toArray } from './content/technique.mjs'
 
 const DEFAULT_ROOT = path.resolve(import.meta.dirname, '..')
@@ -49,6 +51,7 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   const glossaryFiles = await read(await walk(path.join(contentDir, 'glossary'), '.md'))
   const pageFiles = await read(await walk(path.join(contentDir, 'pages'), '.md'))
   const poseFiles = (await walk(path.join(contentDir, 'poses'), '.pose.json')).filter((f) => !path.basename(f).startsWith('_'))
+  const pose3dFiles = (await walk(path.join(contentDir, 'poses3d'), '.pose3d.json')).filter((f) => !path.basename(f).startsWith('_'))
 
   // ---- pass 1: 名前 → id（[[用語]] の解決表） ----
   const glossaryNames = new Map()
@@ -112,7 +115,28 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
     }
   }
   const poseIds = new Set(poses.map((p) => p.id))
-  for (const t of techniques) if (!poseIds.has(t.id)) diag.warn(`content/techniques/${t.id}.md:1`, 'pose.json がありません（アニメなしで表示）')
+
+  // 3D ポーズ（docs/animation-spec.md §13）。3D があれば技詳細は 3D で表示し、2D は WebGL が使えない端末向けに残す
+  const poses3d = []
+  const body3dFile = path.join(contentDir, 'poses3d', '_body3d.json')
+  const body3d = existsSync(body3dFile) ? JSON.parse(await readFile(body3dFile, 'utf8')) : null
+  if (pose3dFiles.length && !body3d) diag.error('content/poses3d/_body3d.json:1', '3D の標準体型 _body3d.json がありません')
+  for (const file of pose3dFiles) {
+    const id = path.basename(file, '.pose3d.json')
+    let pose
+    try {
+      pose = JSON.parse(await readFile(file, 'utf8'))
+    } catch (e) {
+      diag.error(`${rel(file)}:1`, `JSON として読めません: ${/** @type {Error} */ (e).message}`)
+      continue
+    }
+    if (body3d && validatePose3D({ rel: rel(file), id, pose, technique: byId.get(id) ?? null, diag })) {
+      checkPose3DWarnings({ rel: rel(file), pose, body: body3d, diag })
+      poses3d.push({ id, source: pose.source ?? 'estimate', note: pose.note ?? '', body: { bones: body3d.bones, radii: body3d.radii }, keyframes: pose.keyframes })
+    }
+  }
+  const pose3dIds = new Set(poses3d.map((p) => p.id))
+  for (const t of techniques) if (!poseIds.has(t.id) && !pose3dIds.has(t.id)) diag.warn(`content/techniques/${t.id}.md:1`, 'pose.json がありません（アニメなしで表示）')
 
   // フォントのサブセット外の文字（D-03）
   const charsetFile = path.join(root, 'scripts', 'font-charset.json')
@@ -163,6 +187,7 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
       status: t.status,
       kf_count: t.keyframes.length,
       has_pose: poseIds.has(t.id),
+      has_pose3d: pose3dIds.has(t.id),
     }
   }
 
@@ -175,6 +200,7 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   for (const g of glossary) put(`glossary/${g.id}.json`, g)
   for (const p of pages) put(`pages/${p.name}.json`, p)
   for (const p of poses) put(`poses/${p.id}.json`, p)
+  for (const p of poses3d) put(`poses3d/${p.id}.json`, p)
   const unresolved = [...new Set(diag.items.filter((i) => i.msg.includes('未解決の用語')).map((i) => i.msg.match(/\[\[(.+?)\]\]/)?.[1]))].filter(Boolean)
   if (unresolved.length) put('unresolved-terms.txt', unresolved.join('\n') + '\n')
 
@@ -192,7 +218,7 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   }
 
   if (!quiet || diag.errorCount || diag.warnCount) diag.print({ log })
-  return { diag, index, techniques, kihon, glossary, pages, poses }
+  return { diag, index, techniques, kihon, glossary, pages, poses, poses3d }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

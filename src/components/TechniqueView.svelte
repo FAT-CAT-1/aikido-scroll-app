@@ -10,16 +10,20 @@
   // - アニメ領域のピンチ：開く＝中点に最も近い部位を開く／1段深く、閉じる＝1段閉じる（T21）
   // - トグルの深さは history と同期：開くたび pushState、戻るボタンで1段ずつ閉じる、画面の「閉じる」は history.back()（T22）
   //   用語リンクで離れて戻ったときは、保存しておいた進捗・視点・スクロールとトグルの深さを復元する
+  // - 3D の姿勢（pose3d）がある技は 3D で描き、カメラの位置（斜め・横・真上）を選べる。WebGL が使えなければ 2D に切り替える（animation-spec §13）
   import { gsap } from 'gsap'
   import { tick } from 'svelte'
   import { MediaQuery } from 'svelte/reactivity'
   import { createPoseTimeline, type PoseTimeline, type ScenePose } from '../lib/anim/timeline'
+  import { frameCamera, sceneLabel, type CameraPreset } from '../lib/anim3d/camera'
+  import { createPose3DTimeline, poseBounds, posePoints, type Pose3DTimeline, type Scene3D } from '../lib/anim3d/pose3d'
   import type { PinchDirection } from '../lib/gesture/pinch'
   import { nav } from '../lib/history/nav.svelte'
   import { holdFonts } from '../lib/fonts'
   import { keyframeFor, nearestIndex } from '../lib/content/keyframe'
-  import { contentIndex, loadKihon, loadPose, loadTechnique } from '../lib/content/loader'
-  import type { Part, PoseData, Role, Technique } from '../lib/content/types'
+  import { contentIndex, loadKihon, loadPose, loadPose3D, loadTechnique } from '../lib/content/loader'
+  import type { Part, Pose3DData, PoseData, Role, Technique } from '../lib/content/types'
+  import CameraTabs from './CameraTabs.svelte'
   import PartToggle from './PartToggle.svelte'
   import PlayControls from './PlayControls.svelte'
   import ScrubStrip from './ScrubStrip.svelte'
@@ -41,6 +45,7 @@
     view: Role
     attack: string | null
     scrollY: number
+    camera?: CameraPreset
   }
   // 戻ってきたときの復元（このエントリに保存された同じ技の状態）。App が技 id ごとに作り直すので、作成時に一度だけ読む
   function readRestore(): Snapshot | null {
@@ -52,6 +57,12 @@
   let technique = $state.raw<Technique | null>(null)
   let poseData = $state.raw<PoseData | null>(null)
   let scene = $state.raw<ScenePose | null>(null)
+  let pose3d = $state.raw<Pose3DData | null>(null)
+  let scene3d = $state.raw<Scene3D | null>(null)
+  let timeline3d: Pose3DTimeline | null = null
+  /** 3D で描けない端末では false（2D に切り替える） */
+  let can3d = $state(true)
+  let camera = $state<CameraPreset>(restore?.camera ?? 'oblique')
   let progress = $state(restore?.progress ?? 0)
   let view = $state<Role>(restore?.view ?? nav.state.toggle?.role ?? 'tori')
   let attack = $state<string | null>(null)
@@ -64,11 +75,14 @@
     loading = true
     // 技データを表示するまで Web フォントの読み込みを待たせる（lib/fonts.ts）
     const releaseFonts = holdFonts()
-    Promise.all([kind === 'kihon' ? loadKihon(id) : loadTechnique(id), loadPose(id)])
-      .then(async ([t, p]) => {
+    Promise.all([kind === 'kihon' ? loadKihon(id) : loadTechnique(id), loadPose(id), loadPose3D(id)])
+      .then(async ([t, p, p3]) => {
         if (cancelled) return
         technique = t
         poseData = p
+        pose3d = p3
+        timeline3d = p3 ? createPose3DTimeline(p3) : null
+        scene3d = timeline3d ? timeline3d.seek(progress) : null
         attack = restore?.attack && t?.attacks.includes(restore.attack) ? restore.attack : (t?.default_attack ?? null)
         timeline?.destroy()
         timeline = p ? createPoseTimeline(p) : null
@@ -88,7 +102,16 @@
   })
 
   // 画面遷移（用語リンクなど）の直前と、トグルを開くときに今の状態を history に保存する
-  $effect(() => nav.stack.registerSnapshot('technique', (): Record<string, unknown> => ({ id, progress, view, attack, scrollY: Math.round(window.scrollY) }) satisfies Snapshot))
+  $effect(() => nav.stack.registerSnapshot('technique', (): Record<string, unknown> => ({ id, progress, view, attack, scrollY: Math.round(window.scrollY), camera }) satisfies Snapshot))
+
+  // ---- 3D：技全体が入るカメラ（技の間は動かさない） ----
+  const use3d = $derived(can3d && !!pose3d && !!scene3d)
+  const bounds3d = $derived(pose3d ? poseBounds(pose3d) : null)
+  const points3d = $derived(pose3d ? posePoints(pose3d) : null)
+  const cam = $derived(points3d ? frameCamera(points3d, camera, view) : null)
+  function onFallback3d() {
+    can3d = false
+  }
 
   // kf の並びは原稿を正とし、原稿が無ければ pose の kf を使う
   const kfList = $derived(technique?.keyframes ?? poseData?.keyframes ?? [])
@@ -106,6 +129,7 @@
   function seekTo(p: number) {
     progress = p
     if (timeline) scene = timeline.seek(p)
+    if (timeline3d) scene3d = timeline3d.seek(p)
   }
   function onScrub(p: number) {
     seekTo(p)
@@ -124,7 +148,7 @@
   let playTween: gsap.core.Tween | null = null
 
   function startPlaying() {
-    if (reducedMotion.current || !timeline) return
+    if (reducedMotion.current || (!timeline && !timeline3d)) return
     if (nav.state.toggle) nav.stack.closeAll()
     const from = progress >= 0.999 ? 0 : progress
     const proxy = { p: from }
@@ -246,11 +270,14 @@
 
   {#if loading}
     <p class="note">読み込み中…</p>
-  {:else if !scene}
+  {:else if !scene && !use3d}
     <p class="note">この技のアニメーション（pose.json）はまだありません。</p>
   {:else}
     <div class="controls-top">
       <ViewTabs {view} controls="technique-stage" onchange={changeView} />
+      {#if use3d}
+        <CameraTabs value={camera} onchange={(c) => (camera = c)} />
+      {/if}
       {#if technique && technique.attacks.length > 1}
         <label class="attack">
           <span>攻撃法</span>
@@ -266,9 +293,14 @@
     <div id="technique-stage" class="stage-block" class:focused={toggle !== null} role="tabpanel" aria-labelledby="view-tab-{view}" bind:this={stageBlock}>
       <TechniqueStage
         {scene}
+        scene3d={use3d ? scene3d : null}
+        cam={use3d ? cam : null}
+        body3d={pose3d?.body ?? null}
+        {bounds3d}
+        onfallback3d={onFallback3d}
         {view}
         ground={poseData?.ground}
-        label={`${technique?.name_ja ?? id}の動き（${view === 'tori' ? '取り' : '受け'}の視点）`}
+        label={use3d ? sceneLabel(technique?.name_ja ?? id, view, camera) : `${technique?.name_ja ?? id}の動き（${view === 'tori' ? '取り' : '受け'}の視点）`}
         {parts}
         {paused}
         toggleId={TOGGLE_ID}

@@ -149,6 +149,72 @@ export interface PoseData {
   keyframes: PoseKeyframe[]
 }
 
+// ---- 3D ポーズ（docs/animation-spec.md §13。単位メートル、y が上、床 y=0） ----
+
+export type Vec3 = [number, number, number]
+
+export type Joint3D =
+  | 'head'
+  | 'nose'
+  | 'neck'
+  | 'shoulder_l'
+  | 'shoulder_r'
+  | 'elbow_l'
+  | 'elbow_r'
+  | 'wrist_l'
+  | 'wrist_r'
+  | 'hand_l'
+  | 'hand_r'
+  | 'hip'
+  | 'hara'
+  | 'hipjoint_l'
+  | 'hipjoint_r'
+  | 'knee_l'
+  | 'knee_r'
+  | 'ankle_l'
+  | 'ankle_r'
+  | 'toe_l'
+  | 'toe_r'
+
+export interface Figure3D {
+  joints: Record<Joint3D, Vec3>
+  /** 視線の向き（長さ 1） */
+  gaze: Vec3
+}
+
+/** 手をつかんだ先。関節（"uke.wrist_r"）か、2関節の間の点（["uke.shoulder_r", "uke.elbow_r", 0.85]） */
+export type ContactTarget = string | [string, string, number]
+
+export interface Contact3D {
+  hand: string
+  on: ContactTarget
+}
+
+export interface Pose3DKeyframe {
+  id: string
+  at: number
+  ease?: string
+  /** 原稿に無い、動きをなめらかにするための間の kf */
+  between?: boolean
+  contacts?: Contact3D[]
+  tori: Figure3D
+  uke: Figure3D
+}
+
+export interface Body3D {
+  bones: Record<string, number>
+  radii: Record<string, number>
+}
+
+export interface Pose3DData {
+  id: string
+  /** estimate＝記述からの推定、mocap＝動画から作った動き */
+  source: 'estimate' | 'mocap' | string
+  note: string
+  body: Body3D
+  keyframes: Pose3DKeyframe[]
+}
+
 export interface TechniqueSummary {
   id: string
   type: 'technique' | 'kihon'
@@ -163,6 +229,7 @@ export interface TechniqueSummary {
   status: Status
   kf_count: number
   has_pose: boolean
+  has_pose3d: boolean
 }
 
 export interface ContentIndex {

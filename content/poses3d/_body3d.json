@@ -1,0 +1,31 @@
+{
+  "description": "3D の標準体型（docs/animation-spec.md §13）。単位はメートル、y が上、床は y=0。全技共通。pose3d の骨長の基準で、実行時もこの長さで骨をつなぐ（kf 間で手足が伸び縮みしない）",
+  "bones": {
+    "spine": 0.5,
+    "neck-head": 0.16,
+    "head-nose": 0.11,
+    "neck-shoulder": 0.19,
+    "upper-arm": 0.28,
+    "forearm": 0.25,
+    "hand": 0.09,
+    "hip-hara": 0.13,
+    "hip-hipjoint": 0.114,
+    "thigh": 0.43,
+    "shin": 0.42,
+    "foot": 0.19
+  },
+  "radii": {
+    "head": 0.105,
+    "neck": 0.045,
+    "chest": 0.14,
+    "torso": 0.105,
+    "pelvis": 0.125,
+    "shoulder": 0.05,
+    "upper-arm": 0.047,
+    "forearm": 0.04,
+    "hand": 0.043,
+    "thigh": 0.068,
+    "shin": 0.052,
+    "foot": 0.042
+  }
+}

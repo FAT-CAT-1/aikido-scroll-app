@@ -88,7 +88,8 @@ test('視点を受けに切り替えても再生位置を保つ', async ({ page 
   const slider = page.getByRole('slider', { name: /技の再生位置/ })
   const at = await slider.getAttribute('aria-valuenow')
   await page.getByRole('tab', { name: /受け/ }).click()
-  await expect(page.locator('.figure.focus')).toHaveAttribute('data-role', 'uke')
-  await expect(page.locator('.scene')).toHaveAttribute('transform', /scale\(-1 1\)/)
+  // 3D でも 2D でも、アニメ領域の説明が受けの視点になる（3D はカメラが受けの側へ回り、2D は左右反転）
+  await expect(page.locator('.drawing [role=img]')).toHaveAttribute('aria-label', /受けの視点/)
+  await expect(page.locator('#uke-knee-f .anchor')).toHaveCount(1)
   await expect(slider).toHaveAttribute('aria-valuenow', at ?? '')
 })

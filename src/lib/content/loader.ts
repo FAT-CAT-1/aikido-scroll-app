@@ -1,5 +1,5 @@
 // src/generated/（build:content の出力）を読む。技・用語などは必要になった時に遅延読み込み（design-complete A-1）
-import type { ContentIndex, GlossaryEntry, Page, PoseData, Technique } from './types'
+import type { ContentIndex, GlossaryEntry, Page, Pose3DData, PoseData, Technique } from './types'
 
 type Mods<T> = Record<string, () => Promise<{ default: T }>>
 
@@ -8,6 +8,7 @@ const kihonMods = import.meta.glob('/src/generated/kihon/*.json') as Mods<Techni
 const glossaryMods = import.meta.glob('/src/generated/glossary/*.json') as Mods<GlossaryEntry>
 const pageMods = import.meta.glob('/src/generated/pages/*.json') as Mods<Page>
 const poseMods = import.meta.glob('/src/generated/poses/*.json') as Mods<PoseData>
+const pose3dMods = import.meta.glob('/src/generated/poses3d/*.json') as Mods<Pose3DData>
 const indexMods = import.meta.glob('/src/generated/index.json', { eager: true }) as Record<string, { default: ContentIndex }>
 
 export const contentIndex: ContentIndex = Object.values(indexMods)[0]?.default ?? { techniques: [], kihon: [], pages: [], glossary_count: 0, attack_names: {} }
@@ -22,3 +23,4 @@ export const loadKihon = (id: string) => load(kihonMods, 'kihon', id)
 export const loadGlossary = (id: string) => load(glossaryMods, 'glossary', id)
 export const loadPage = (name: string) => load(pageMods, 'pages', name)
 export const loadPose = (id: string) => load(poseMods, 'poses', id)
+export const loadPose3D = (id: string) => load(pose3dMods, 'poses3d', id)

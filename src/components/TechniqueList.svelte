@@ -80,7 +80,7 @@
                   {#if FORM_LABEL[t.form]}<span class="tag">{FORM_LABEL[t.form]}</span>{/if}
                   <span class="tag">{TECHNIQUE_CATEGORY_LABEL[t.category] ?? t.category}</span>
                   {#if t.default_attack}<span class="attack">{glossaryName(t.default_attack)}</span>{/if}
-                  <span class="kf">{t.has_pose ? `アニメ ${t.kf_count}場面` : `${t.kf_count}場面（アニメ準備中）`}</span>
+                  <span class="kf">{t.has_pose3d ? `3Dアニメ ${t.kf_count}場面` : t.has_pose ? `アニメ ${t.kf_count}場面` : `${t.kf_count}場面（アニメ準備中）`}</span>
                 </span>
                 <span class="badge"><StatusBadge status={t.status} /></span>
               </a>
