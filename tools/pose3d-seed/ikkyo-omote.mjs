@@ -150,6 +150,39 @@ const kuzushi = (() => {
   return { id: 'kuzushi', at: 0.35, contacts: GRIPS, tori, uke }
 })()
 
+// ---- 間：受けが腰から前へ折れて沈み始める（0.45） ----
+// 補間だけだと受けがその場でしゃがみ込むので、前へ折れながら足を後ろへ送る姿勢を挟む（docs/decisions.md D-47）
+const oreru = (() => {
+  const uke = figure(
+    {
+      hip: [0.7, 0.74, 0.2],
+      yaw: 160,
+      chestYaw: 142,
+      lean: 46,
+      side: -4,
+      head: { yaw: -15, pitch: -20 },
+      legs: { l: { ankle: at(0.5, 0.3, Y), toe: 170 }, r: { ankle: at(0.78, 0.02, Y), toe: 150 } },
+      arms: { r: { hand: [0.2, 0.92, 0.18], pole: norm([0.2, 0.6, 0.4]) }, l: { hand: [0.66, 0.5, 0.52] } },
+    },
+    'oreru 受け',
+  )
+  const tori = figure(
+    {
+      hip: [-0.17, 0.84, 0.02],
+      yaw: 36,
+      chestYaw: 28,
+      lean: 22,
+      faceAt: headOf(uke),
+      lookAt: headOf(uke),
+      // 後ろ足（右）を受けの脇へ運ぶ途中（浮いている）
+      legs: { l: { ankle: at(-0.26, -0.33, Y), toe: 25 }, r: { ankle: at(-0.2, 0.16, 0.16), toe: 40, toeUp: 0.04 } },
+      arms: { r: { hand: gripWrist(uke, 0.035) }, l: { hand: gripElbow(uke, -0.02) } },
+    },
+    'oreru 取り',
+  )
+  return { id: 'oreru', at: 0.45, between: true, contacts: GRIPS, tori, uke }
+})()
+
 // ---- 入身（0.55） ----
 const irimi = (() => {
   const ukeHip = [0.95, 0.5, 0.3]
@@ -176,7 +209,8 @@ const irimi = (() => {
 
   const hands = lerp(uke.joints.wrist_r, uke.joints.elbow_r, 0.5)
   const toriYaw = 30
-  const toriHip = add(sub([hands[0], 0, hands[2]], mul(fwd(toriYaw), 0.4)), [0, 0.72, 0])
+  // 腰は前足（右）の上寄り。両足の真ん中に置くと両膝が左右に開いたしゃがみに見える（D-47）
+  const toriHip = add(sub([hands[0], 0, hands[2]], mul(fwd(toriYaw), 0.3)), [0, 0.74, 0])
   const tori = figure(
     {
       hip: toriHip,
@@ -186,7 +220,7 @@ const irimi = (() => {
       faceAt: uke.joints.neck,
       lookAt: uke.joints.head,
       // 後ろになった足（左）は、踏み込みに合わせて少し引き寄せる
-      legs: { r: { ankle: at(0.2, 0.3, Y), toe: 35 }, l: { ankle: at(-0.16, -0.27, 0.1), toe: 22, toeUp: 0.03 } },
+      legs: { r: { ankle: at(0.2, 0.3, Y), toe: 35 }, l: { ankle: at(-0.26, -0.3, 0.1), toe: 22, toeUp: 0.03 } },
       arms: { r: { hand: gripWrist(uke, 0.035) }, l: { hand: gripElbow(uke, 0.045) } },
     },
     'irimi 取り',
@@ -232,9 +266,88 @@ function pin(id, atTime, { tap, toriLean, toriHeadPitch, lookUp }) {
 }
 
 const osae = pin('osae', 0.8, { tap: false, toriLean: 50 })
+
+// ---- 間：入身から抑えへ（0.66・0.73） ----
+// 補間だけだと、取りは両膝を左右に開いてしゃがみ、受けは膝立ちからうつ伏せへ移る途中で脚が宙に跳ね上がる。
+// 取りは左足を受けの脇の方へ踏み出して前後に低く構え（0.66）、後ろの右膝を受けの手首の位置に着き（0.73）、最後に左膝を脇に着く（抑え）。
+// 受けは膝を着いたまま脚を後ろへ寝かせ、胸を畳へ下ろしていく（D-47）
+const PIN_YAW = 110
+const PIN_HIP = [0.98, 0.28]
+
+/** 受け：膝を着き脚を後ろへ寝かせたまま、胸を畳へ下ろしていく途中 */
+function lowering(label) {
+  const sp = fwd(PIN_YAW + 3)
+  const spine = norm(add(sp, [0, 0.32, 0]))
+  const hip = [PIN_HIP[0] - 0.01, 0.3, PIN_HIP[1] - 0.01]
+  const back = mul(sp, -1)
+  const right = rightOf(PIN_YAW + 3)
+  const knee = (sign) => {
+    const p = add(add([hip[0], 0, hip[2]], mul(back, 0.62)), mul(right, 0.1 * sign))
+    return { kneel: [p[0], p[2]], back }
+  }
+  const base = {
+    hip,
+    yaw: PIN_YAW + 3,
+    spine,
+    front: [0, -1, 0],
+    pelvisUp: norm(add(sp, [0, 0.5, 0])),
+    pelvisFront: norm(add(mul(sp, 0.3), [0, -1, 0])),
+    faceAt: add(add(hip, mul(sp, 0.9)), add(mul(right, -0.6), [0, -0.12, 0])),
+    legs: { l: knee(-1), r: knee(1) },
+  }
+  const probe = figure({ ...base, arms: { r: { hand: [0.2, 0.3, 0.55] }, l: { hand: [1.0, 0.05, 1.0] } } }, `${label}（仮）`)
+  // 腕はまだ畳へ下ろしていく途中（抑えより高い）
+  const armDir = norm(add(add(mul(right, 0.95), mul(sp, 0.15)), [0, -0.12, 0]))
+  const handR = add(probe.joints.shoulder_r, mul(armDir, 0.6))
+  const handL = [probe.joints.neck[0] + sp[0] * 0.2 - right[0] * 0.3, 0.045, probe.joints.neck[2] + sp[2] * 0.2 - right[2] * 0.3]
+  return figure({ ...base, arms: { r: { hand: handR, dir: armDir }, l: { hand: handL, dir: norm(add(sp, [0, -0.3, 0])) } } }, label)
+}
+
+const osaeIn = (() => {
+  const uke = lowering('osae-in 受け')
+  const yaw = 76
+  const tori = figure(
+    {
+      hip: [0.36, 0.66, 0.36],
+      yaw,
+      chestYaw: yaw + 6,
+      lean: 50,
+      faceAt: uke.joints.elbow_r,
+      lookAt: uke.joints.head,
+      // 左足を受けの脇の方へ踏み出し、右足は後ろ（前後に低く構える）
+      legs: { l: { ankle: at(0.58, 0.52, Y), toe: yaw }, r: { ankle: at(0.0, -0.08, Y), toe: yaw - 30 } },
+      arms: { r: { hand: gripWrist(uke, 0.035) }, l: { hand: gripElbow(uke, 0.04) } },
+    },
+    'osae-in 取り',
+  )
+  return { id: 'osae-in', at: 0.66, between: true, contacts: GRIPS, tori, uke }
+})()
+
+const hiza = (() => {
+  // 受けは抑えと同じうつ伏せ。取りは後ろの右膝を受けの手首の位置に着き、左足はまだ立てている
+  const uke = osae.uke
+  const yaw = 100
+  const tori = figure(
+    {
+      hip: [0.28, 0.44, 0.34],
+      yaw,
+      chestYaw: yaw + 6,
+      lean: 58,
+      faceAt: uke.joints.elbow_r,
+      lookAt: uke.joints.elbow_r,
+      legs: {
+        r: { kneel: [0.2, 0.43], tucked: true, back: mul(fwd(yaw), -1) },
+        l: { ankle: at(0.6, 0.5, Y), toe: yaw - 10, pole: norm(add(fwd(yaw), [0, 0.3, 0])) },
+      },
+      arms: { r: { hand: gripWrist(uke, 0.04) }, l: { hand: gripElbow(uke, 0.045, 0.8) } },
+    },
+    'hiza 取り',
+  )
+  return { id: 'hiza', at: 0.73, between: true, contacts: GRIPS, tori, uke }
+})()
 const zanshin = pin('zanshin', 1.0, { tap: true, toriLean: 48, toriHeadPitch: 32, lookUp: true })
 
-writePose3D('ikkyo-omote', [kamae, furikaburi, contact, kuzushi, irimi, osae, zanshin], {
+writePose3D('ikkyo-omote', [kamae, furikaburi, contact, kuzushi, oreru, irimi, osaeIn, hiza, osae, zanshin], {
   note: '記述からの推定（動画なし）。右の相半身・正面打ち。足運びと抑えの形は docs/content-review-notes.md の 3D の項を師範に確認する',
 })
 void UP
