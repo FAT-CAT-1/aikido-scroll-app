@@ -82,6 +82,15 @@ test('再生すると進み、再生中に巻物へ触れると止まって吹�
   await expect(page.locator('.stage.paused')).toBeVisible()
 })
 
+test('巻物を右端から左端（最初）まで一気に戻すと、構えに戻る', async ({ page }) => {
+  await openTechnique(page)
+  const slider = page.getByRole('slider', { name: /技の再生位置/ })
+  await scrubTo(page, 1)
+  await expect(slider).toHaveAttribute('aria-valuenow', '100')
+  await scrubTo(page, 0)
+  await expect(slider).toHaveAttribute('aria-valuenow', '0')
+})
+
 test('視点を受けに切り替えても再生位置を保つ', async ({ page }) => {
   await openTechnique(page)
   await scrubTo(page, 0.55)

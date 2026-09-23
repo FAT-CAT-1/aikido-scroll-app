@@ -28,8 +28,8 @@
   let scroller = $state<HTMLElement>()
   let width = $state(0)
   let idleTimer: ReturnType<typeof setTimeout> | undefined
-  /** 最後に自分で書いた scrollLeft（これと一致する scroll イベントは自分の書き込み） */
-  let writtenLeft = -1
+  /** 最後に自分で書いた scrollLeft（これと一致する scroll イベントは自分の書き込み）。NaN＝まだ無い／使い終わった */
+  let writtenLeft = Number.NaN
 
   const maxScroll = $derived(width * (LENGTH - 1))
 
@@ -60,8 +60,12 @@
 
   function onScroll() {
     if (!scroller || maxScroll <= 0) return
-    // 自分の書き込み（再生中の同期など）はユーザー操作として扱わない
-    if (Math.abs(scroller.scrollLeft - writtenLeft) <= 1) return
+    // 自分の書き込み（再生中の同期など）はユーザー操作として扱わない。1回分の scroll イベントで使い終わる
+    // （残しておくと、後で指がたまたま同じ位置で止まったときに無視してしまう。初期値を 0 付近にすると左端への移動を無視する）
+    if (Math.abs(scroller.scrollLeft - writtenLeft) <= 1) {
+      writtenLeft = Number.NaN
+      return
+    }
     if (playing) return
     const p = Math.min(1, Math.max(0, scroller.scrollLeft / maxScroll))
     onscrub(p)
