@@ -83,7 +83,7 @@ test('3D の無い技（座り技呼吸法）でも、記述からの推定の 2
   await expect(page.locator('svg.body')).toHaveAttribute('aria-label', /推定の動き/)
 })
 
-for (const id of ['ikkyo-ura', 'iriminage', 'shihonage-omote']) test(`${id} も 3D で描き、推定の注記が出る（D-48）`, async ({ page }) => {
+for (const id of ['ikkyo-ura', 'iriminage', 'shihonage-omote', 'shihonage-ura']) test(`${id} も 3D で描き、推定の注記が出る（D-48）`, async ({ page }) => {
   await openTechnique(page, id)
   const body = page.locator('.body3d')
   test.skip((await body.count()) === 0, 'この端末では WebGL が使えず 2D で表示')

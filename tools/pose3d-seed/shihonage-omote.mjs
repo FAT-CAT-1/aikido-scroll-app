@@ -8,6 +8,8 @@
 // - くぐり：両足のつま先の付け根を軸に約 180° 転回して、受けの腕の下をくぐり向きを変える。受けは腕を畳まれ、背中を投げの向きへ
 // - 投げ：前足（右）を受けの背中の方へ送り足で踏み出し、両手を剣のように斬り下ろす。受けは膝を曲げて沈み、後ろへ倒れる
 // - 残心：受けは仰向け。取りは膝を曲げて腰を落とし、受けの肩の近くで受けの手を耳元へ導いて制する
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { add, at, figure, fwd, lerp, mul, norm, resetWarnings, rightOf, STAND_HIP, sub, supine, writePose3D } from './lib.mjs'
 import * as omote from './ikkyo-omote.mjs'
 
@@ -97,7 +99,7 @@ const kuzushi = (() => {
       lean: 8,
       faceAt: add(headOf(uke), [0, 0, 0.4]),
       lookAt: add(uke.joints.hand_l, [0.3, 0, 0.5]),
-      legs: { r: { ankle: at(-0.38, 0.24, Y), toe: 30 }, l: { ankle: at(-0.92, -0.02, Y), toe: -60 } },
+      legs: { r: { ankle: at(-0.38, 0.24, Y), toe: 30 }, l: { ankle: at(-0.92, -0.02, Y), toe: -25 } },
       arms: { r: { hand: holdR(uke) }, l: { hand: holdL(uke) } },
     },
     'kuzushi 取り',
@@ -121,19 +123,49 @@ const irimi = (() => {
   )
   const tori = figure(
     {
-      hip: [-0.18, STAND_HIP - 0.12, 0.48],
+      hip: [-0.2, STAND_HIP - 0.12, 0.56],
       yaw: 20,
       chestYaw: 40,
       lean: 4,
       head: { pitch: 10 },
       lookAt: add(headOf(uke), [0.5, 0, 0.3]),
       // 左足を受けの前（左前）へ大きく踏み込む。右足はその場
-      legs: { l: { ankle: at(0.12, 0.62, Y), toe: 10 }, r: { ankle: at(-0.38, 0.24, Y), toe: 40 } },
+      legs: { l: { ankle: at(0.1, 0.74, Y), toe: 25, pole: norm([0.7, 0, 0.7]) }, r: { ankle: at(-0.38, 0.24, Y), toe: 40 } },
       arms: { r: { hand: holdR(uke) }, l: { hand: holdL(uke) } },
     },
     'irimi 取り',
   )
   return { id: 'irimi', at: 0.4, between: true, contacts: HOLD, tori, uke }
+})()
+
+// ---- 間（0.45）：受けの腕を頭の上に保ったまま、受けの左横（+z 側）を大回りして腕の下をくぐる（受けの足をまたがない） ----
+const kuguriNaka = (() => {
+  const uke = figure(
+    {
+      hip: [0.14, STAND_HIP - 0.12, 0.18],
+      yaw: 100,
+      chestYaw: 80,
+      lean: 6,
+      head: { yaw: 20, pitch: 5 },
+      legs: { l: { ankle: at(0.06, 0.3, Y), toe: 100 }, r: { ankle: at(0.3, 0.0, Y), toe: 110 } },
+      arms: { l: { hand: [0.12, 1.62, 0.5], pole: norm([0.3, 1, 0.4]) }, r: { hand: [0.3, 0.95, -0.1], soft: true } },
+    },
+    'kuguri-naka 受け',
+  )
+  const tori = figure(
+    {
+      hip: [0.2, STAND_HIP - 0.16, 0.74],
+      yaw: 100,
+      chestYaw: 120,
+      lean: 6,
+      head: { pitch: 10 },
+      lookAt: add(headOf(uke), [0.4, 0.1, 0]),
+      legs: { l: { ankle: at(0.02, 0.84, Y), toe: 90 }, r: { ankle: at(0.42, 0.78, 0.12), toe: 130, toeUp: 0.04 } },
+      arms: { r: { hand: holdR(uke) }, l: { hand: holdL(uke) } },
+    },
+    'kuguri-naka 取り',
+  )
+  return { id: 'kuguri-naka', at: 0.45, between: true, contacts: HOLD, tori, uke }
 })()
 
 // ---- くぐり（0.5）：約 180° 転回して受けの腕の下をくぐり、-x（投げの向き）を向く。受けは腕を畳まれ、背中を -x へ ----
@@ -146,7 +178,7 @@ const kuguri = (() => {
       chestYaw: 10,
       lean: 4,
       head: { yaw: 25, pitch: 0 },
-      legs: { l: { ankle: at(0.1, 0.4, Y), toe: 40 }, r: { ankle: at(0.14, 0.02, Y), toe: 0 } },
+      legs: { l: { ankle: at(0.06, 0.28, Y), toe: 30 }, r: { ankle: at(0.14, 0.02, Y), toe: 0 } },
       // 左腕は肘を曲げて手が肩口へ畳まれ、頭の上で取りに持たれる
       arms: { l: { hand: [0.08, 1.58, 0.42], pole: norm([0.6, 1, 0.4]) }, r: { hand: [0.3, 0.95, 0.02], soft: true } },
     },
@@ -154,14 +186,14 @@ const kuguri = (() => {
   )
   const tori = figure(
     {
-      hip: [0.52, STAND_HIP - 0.14, 0.4],
+      hip: [0.55, STAND_HIP - 0.14, 0.44],
       yaw: THROW,
       chestYaw: THROW - 10,
-      lean: 4,
+      lean: 8,
       head: { pitch: 8 },
       lookAt: add(headOf(uke), [-0.8, -0.3, 0]),
       // 転回で向きが変わり、右足が前（-x 側）
-      legs: { r: { ankle: at(0.28, 0.52, Y), toe: THROW + 10 }, l: { ankle: at(0.76, 0.3, Y), toe: THROW - 50 } },
+      legs: { r: { ankle: at(0.34, 0.58, Y), toe: THROW + 10 }, l: { ankle: at(0.8, 0.34, Y), toe: THROW - 50 } },
       arms: { r: { hand: holdR(uke) }, l: { hand: holdL(uke) } },
     },
     'kuguri 取り',
@@ -174,7 +206,7 @@ const nage = (() => {
   const f = fwd(THROW)
   const uke = figure(
     {
-      hip: [-0.12, 0.62, 0.24],
+      hip: [-0.18, 0.62, 0.2],
       yaw: 12,
       chestYaw: 8,
       lean: -18,
@@ -192,7 +224,7 @@ const nage = (() => {
       lean: 12,
       faceAt: add(headOf(uke), [-0.5, -0.3, 0]),
       lookAt: add(headOf(uke), [-0.8, -0.6, 0]),
-      legs: { r: { ankle: add(at(0.28, 0.52, Y), mul(f, 0.34)), toe: THROW + 10 }, l: { ankle: add(at(0.76, 0.3, Y), mul(f, 0.26)), toe: THROW - 50 } },
+      legs: { r: { ankle: add(at(0.34, 0.58, Y), mul(f, 0.34)), toe: THROW + 10 }, l: { ankle: add(at(0.8, 0.34, Y), mul(f, 0.26)), toe: THROW - 50 } },
       arms: { r: { hand: holdR(uke) }, l: { hand: holdL(uke) } },
     },
     'nage 取り',
@@ -204,7 +236,7 @@ const nage = (() => {
 const ochiru = (() => {
   const uke = figure(
     {
-      hip: [-0.42, 0.16, 0.26],
+      hip: [-0.62, 0.16, 0.24],
       yaw: 12,
       lean: -48,
       pelvisTilt: -40,
@@ -219,10 +251,10 @@ const ochiru = (() => {
   )
   const tori = figure(
     {
-      hip: [0.02, STAND_HIP - 0.34, 0.4],
+      hip: [-0.04, STAND_HIP - 0.36, 0.4],
       yaw: THROW,
       chestYaw: THROW - 4,
-      lean: 30,
+      lean: 38,
       faceAt: uke.joints.head,
       lookAt: uke.joints.head,
       legs: { r: { ankle: add(nage.tori.joints.ankle_r, mul(fwd(THROW), 0.14)), toe: THROW + 10 }, l: { ankle: add(add(nage.tori.joints.ankle_l, mul(fwd(THROW), 0.12)), [0, 0.12, 0]), toe: THROW - 30, toeUp: 0.04 } },
@@ -261,7 +293,7 @@ const zanshin = (() => {
       // 左膝を畳に着き、右足を立てて腰を落とす（受けの頭や腕を踏まない位置）
       legs: {
         l: { kneel: [hip[0] - rightOf(yaw)[0] * 0.12, hip[2] - rightOf(yaw)[2] * 0.12], tucked: true, back },
-        r: { ankle: add(at(hip[0], hip[2], Y), add(mul(fwd(yaw), 0.3), mul(rightOf(yaw), 0.2))), toe: yaw, pole: norm(add(fwd(yaw), [0, 0.3, 0])) },
+        r: { ankle: add(at(hip[0], hip[2], Y), add(mul(fwd(yaw), 0.04), mul(rightOf(yaw), 0.34))), toe: yaw + 30, pole: norm(add(fwd(yaw + 30), [0, 0.3, 0])) },
       },
       arms: { r: { hand: holdR(uke) }, l: { hand: holdL(uke) } },
     },
@@ -270,11 +302,43 @@ const zanshin = (() => {
   return { id: 'zanshin', at: 1.0, contacts: HOLD, tori, uke }
 })()
 
-export { kamae, contact, kuzushi, irimi, kuguri, nage, ochiru, zanshin }
+// ---- 間（0.94）：受けは仰向けになり、取りは受けの左側の外を通って頭の横へ歩み寄る（受けの体をまたがない） ----
+const ayumi = (() => {
+  // 受けの左手はまだ取りが胸の上に持ち上げている（残心で耳元へ下ろす）
+  const sh0 = zanshin.uke.joints.shoulder_l
+  const uke = supine(
+    { hip: [-0.7, 0.26], headYaw: THROW, arms: { l: { hand: add(sh0, [0.12, 0.5, 0.12]) }, r: { hand: [-0.46, 0.05, 0.0], soft: true, pole: [0, 1, 0] } } },
+    'ayumi 受け',
+  )
+  const w = uke.joints.wrist_l
+  const hip = [w[0] + 0.34, STAND_HIP - 0.3, w[2] + 0.3]
+  const yaw = (Math.atan2(w[2] - hip[2], w[0] - hip[0]) * 180) / Math.PI
+  const tori = figure(
+    {
+      hip,
+      yaw,
+      chestYaw: yaw,
+      lean: 40,
+      lookAt: uke.joints.head,
+      legs: {
+        // 両足とも受けの体の外側（+z）に、受けの体と並ぶ向きで置く
+        l: { ankle: at(hip[0] + 0.24, hip[2] + 0.14, Y), toe: THROW - 20 },
+        r: { ankle: at(hip[0] - 0.26, hip[2] + 0.1, Y), toe: THROW + 10 },
+      },
+      arms: { r: { hand: holdR(uke) }, l: { hand: holdL(uke) } },
+    },
+    'ayumi 取り',
+  )
+  return { id: 'ayumi', at: 0.94, between: true, contacts: HOLD, tori, uke }
+})()
 
-writePose3D('shihonage-omote', [kamae, contact, kuzushi, irimi, kuguri, nage, ochiru, zanshin], {
-  note: '記述からの推定（動画なし）。逆半身・片手取り。くぐりで回る向きと、投げの向き・受けが倒れる位置を師範に確認する',
-})
+export { kamae, contact, kuzushi, irimi, kuguriNaka, kuguri, nage, ochiru, ayumi, zanshin }
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  writePose3D('shihonage-omote', [kamae, contact, kuzushi, irimi, kuguriNaka, kuguri, nage, ochiru, ayumi, zanshin], {
+    note: '記述からの推定（動画なし）。逆半身・片手取り。くぐり・投げる向き（取りが最初にいた側）・残心の形はディレクター確認済み（2026-09-23）',
+  })
+}
 void lerp
 void rightOf
 void sub
