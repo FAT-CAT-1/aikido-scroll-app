@@ -4,7 +4,7 @@
  * 原稿の文字列をそのままログに出さない：改行・制御文字（端末のエスケープ列を含む）を \uXXXX にする。
  * 改行で新しい行を始めて GitHub Actions のコマンド（::〜::）を作れないようにする（docs/decisions.md D-44）
  */
-const safe = (s) => String(s).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+export const safe = (s) => String(s).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
 
 export class Diagnostics {
   constructor() {

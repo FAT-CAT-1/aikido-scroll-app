@@ -32,10 +32,33 @@ async function walk(dir, ext) {
   const out = []
   for (const ent of await readdir(dir, { withFileTypes: true })) {
     const p = path.join(dir, ent.name)
+    // シンボリックリンクは辿らない（content/ の外のファイルを原稿として読み、公開物に入れないため。docs/decisions.md D-46）
+    if (ent.isSymbolicLink()) continue
     if (ent.isDirectory()) out.push(...(await walk(p, ext)))
-    else if (ent.name.endsWith(ext)) out.push(p)
+    else if (ent.isFile() && ent.name.endsWith(ext)) out.push(p)
   }
   return out.sort()
+}
+
+/**
+ * JSON のオブジェクトを読む。読めない・オブジェクトでない（null や配列）ときはエラーを記録して null（ビルドを例外で止めない。docs/decisions.md D-46）
+ * @param {string} file
+ * @param {Diagnostics} diag
+ * @param {(f: string) => string} rel
+ */
+async function readJson(file, diag, rel) {
+  let v
+  try {
+    v = JSON.parse(await readFile(file, 'utf8'))
+  } catch (e) {
+    diag.error(`${rel(file)}:1`, `JSON として読めません: ${/** @type {Error} */ (e).message}`)
+    return null
+  }
+  if (!v || typeof v !== 'object' || Array.isArray(v)) {
+    diag.error(`${rel(file)}:1`, 'JSON の一番外側はオブジェクト（{ … }）にする')
+    return null
+  }
+  return v
 }
 
 /** @param {{ root?: string, quiet?: boolean, log?: (s: string) => void }} [opts] */
@@ -98,17 +121,12 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
 
   const poses = []
   const bodyFile = path.join(contentDir, 'poses', '_body.json')
-  const body = existsSync(bodyFile) ? JSON.parse(await readFile(bodyFile, 'utf8')) : null
+  const body = existsSync(bodyFile) ? await readJson(bodyFile, diag, rel) : null
   if (poseFiles.length && !body) diag.warn('content/poses/_body.json:1', '標準骨長 _body.json がありません（骨長チェックを省略）')
   for (const file of poseFiles) {
     const id = path.basename(file, '.pose.json')
-    let pose
-    try {
-      pose = JSON.parse(await readFile(file, 'utf8'))
-    } catch (e) {
-      diag.error(`${rel(file)}:1`, `JSON として読めません: ${/** @type {Error} */ (e).message}`)
-      continue
-    }
+    const pose = await readJson(file, diag, rel)
+    if (!pose) continue
     if (validatePose({ rel: rel(file), id, pose, technique: byId.get(id) ?? null, diag })) {
       checkPoseWarnings({ rel: rel(file), pose, body, diag })
       poses.push(pose)
@@ -119,17 +137,12 @@ export async function buildContent({ root = DEFAULT_ROOT, quiet = false, log = c
   // 3D ポーズ（docs/animation-spec.md §13）。3D があれば技詳細は 3D で表示し、2D は WebGL が使えない端末向けに残す
   const poses3d = []
   const body3dFile = path.join(contentDir, 'poses3d', '_body3d.json')
-  const body3d = existsSync(body3dFile) ? JSON.parse(await readFile(body3dFile, 'utf8')) : null
+  const body3d = existsSync(body3dFile) ? await readJson(body3dFile, diag, rel) : null
   if (pose3dFiles.length && !body3d) diag.error('content/poses3d/_body3d.json:1', '3D の標準体型 _body3d.json がありません')
   for (const file of pose3dFiles) {
     const id = path.basename(file, '.pose3d.json')
-    let pose
-    try {
-      pose = JSON.parse(await readFile(file, 'utf8'))
-    } catch (e) {
-      diag.error(`${rel(file)}:1`, `JSON として読めません: ${/** @type {Error} */ (e).message}`)
-      continue
-    }
+    const pose = await readJson(file, diag, rel)
+    if (!pose) continue
     if (body3d && validatePose3D({ rel: rel(file), id, pose, technique: byId.get(id) ?? null, diag })) {
       checkPose3DWarnings({ rel: rel(file), pose, body: body3d, diag })
       poses3d.push({ id, source: pose.source ?? 'estimate', note: pose.note ?? '', body: { bones: body3d.bones, radii: body3d.radii }, keyframes: pose.keyframes })

@@ -11,10 +11,12 @@ const refuse = () => {
 }
 // options を渡すと gray-matter の内容ごとのキャッシュも使われない（同じ本文の別ファイルで結果が混ざらない）
 const OPTIONS = { engines: { javascript: refuse, coffee: refuse, json: refuse } }
+/** YAML のアンカー：値の頭（行頭・「: 」「- 」「[」「,」「{」の後）の「&名前」。文中の「A & B」「?a=1&t=5」には当たらない */
+const ANCHOR_RE = /(?:^|[\s:[,{-])&[^\s,[\]{}]+/m
 
 /** 区切り線「---」の後ろに書かれた言語名（無ければ ''） */
 export function frontmatterLanguage(raw) {
-  const s = raw.replace(/^﻿/, '')
+  const s = raw.replace(/^\uFEFF/, '')
   if (!s.startsWith('---') || s.charAt(3) === '-') return ''
   const end = s.search(/\r?\n/)
   return (end === -1 ? s.slice(3) : s.slice(3, end)).trim()
@@ -34,6 +36,11 @@ export function parseFrontmatter(raw, diag, loc = '') {
   }
   try {
     const fm = matter(raw, OPTIONS)
+    // YAML のアンカー（&名前）と別名（*名前）は使わない。小さなファイルから巨大な値を作ってビルドのメモリを使い切れるため（D-46）
+    if (ANCHOR_RE.test(fm.matter ?? '')) {
+      diag?.error(loc, 'frontmatter に YAML のアンカー（&名前）は書けません')
+      return { data: {}, content: '' }
+    }
     return { data: fm.data ?? {}, content: fm.content }
   } catch (e) {
     diag?.error(loc, `frontmatter を読めません: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`)

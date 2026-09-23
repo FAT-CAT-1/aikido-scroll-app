@@ -17,6 +17,13 @@ test-results/
 .env
 .env.*
 
+# 鍵・認証情報（念のため。docs/decisions.md D-46）
+*.pem
+*.key
+*.p12
+*.pfx
+.npmrc
+
 # フォント原本（OFL配布TTF。サブセット済みwoff2のみ public/fonts/ に置く）
 fonts-src/
 

@@ -1,5 +1,5 @@
 // セキュリティ監査（2026-09-23、docs/decisions.md D-44）で見つかった原稿パイプラインの穴の回帰テスト
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -10,6 +10,7 @@ import { createRenderer } from '../../scripts/content/inline.mjs'
 import { EASE_RE } from '../../scripts/content/pose.mjs'
 import { checkVideos } from '../../scripts/content/technique.mjs'
 import { cspFor } from '../../scripts/vite-plugin-csp.mjs'
+import { isNavState } from '../../src/lib/history/toggleStack'
 
 const errors = (diag: Diagnostics) => diag.items.filter((i) => i.level === 'error').map((i) => i.msg)
 
@@ -73,7 +74,7 @@ describe('frontmatter は YAML だけ（---js などを実行しない）', () =
 
   it('区切り線の言語名を読み取る', () => {
     expect(frontmatterLanguage('---\nid: a\n---\n')).toBe('')
-    expect(frontmatterLanguage('﻿---js \nx\n---\n')).toBe('js')
+    expect(frontmatterLanguage('\uFEFF---js \nx\n---\n')).toBe('js')
     expect(frontmatterLanguage('----\n')).toBe('')
   })
 
@@ -147,5 +148,65 @@ describe('その他', () => {
     expect(scriptSrc).not.toContain('unsafe')
     expect(csp).toContain("object-src 'none'")
     expect(csp).toContain("base-uri 'none'")
+  })
+})
+
+describe('強化（docs/decisions.md D-46）', () => {
+  let root = ''
+  afterEach(() => {
+    if (root) rmSync(root, { recursive: true, force: true })
+    root = ''
+  })
+
+  it('frontmatter の YAML アンカーはエラー（別名で巨大な値を作らせない）', () => {
+    const diag = new Diagnostics()
+    const fm = parseFrontmatter('---\nid: a\nx: &big [1, 2]\ny: [*big, *big]\n---\n', diag, 'x.md:1')
+    expect(fm.data).toEqual({})
+    expect(errors(diag).some((m) => m.includes('アンカー'))).toBe(true)
+    // 文中の & や URL の &t= はアンカーではない
+    const ok = new Diagnostics()
+    expect(parseFrontmatter('---\nid: a\nnote: A & B\nurl: https://www.youtube.com/watch?v=x&t=5s\n---\n', ok).data.id).toBe('a')
+    expect(ok.items).toEqual([])
+  })
+
+  it('@src:constructor などで Object の組み込みを出典として拾わない', () => {
+    const { html, diag } = render('文。@src:constructor')
+    expect(html).toContain('（出典：constructor）')
+    expect(diag.items.some((i) => i.msg.includes('定義されていません'))).toBe(true)
+  })
+
+  it('シンボリックリンクの原稿は読まない（content/ の外のファイルを公開物に入れない）', async () => {
+    root = mkdtempSync(path.join(tmpdir(), 'aikido-sec-'))
+    mkdirSync(path.join(root, 'content', 'pages'), { recursive: true })
+    const secret = path.join(root, 'secret.md')
+    writeFileSync(secret, '# 秘密\n外に出してはいけない文。\n')
+    try {
+      symlinkSync(secret, path.join(root, 'content', 'pages', 'leak.md'))
+    } catch {
+      return // Windows で開発者モードが無いとシンボリックリンクを作れない（CI の Linux では必ず確かめる）
+    }
+    const { pages } = await buildContent({ root, quiet: true, log: () => {} })
+    expect(pages.map((p) => p.name)).not.toContain('leak')
+  })
+
+  it('ポーズの JSON が null・kf が null でも例外で止まらずエラーにする', async () => {
+    root = mkdtempSync(path.join(tmpdir(), 'aikido-sec-'))
+    mkdirSync(path.join(root, 'content', 'poses'), { recursive: true })
+    writeFileSync(path.join(root, 'content', 'poses', 'a.pose.json'), 'null')
+    writeFileSync(path.join(root, 'content', 'poses', 'b.pose.json'), JSON.stringify({ id: 'b', viewBox: [1000, 600], ground: 520, keyframes: [null] }))
+    const { diag, poses } = await buildContent({ root, quiet: true, log: () => {} })
+    expect(poses).toEqual([])
+    expect(errors(diag).some((m) => m.includes('オブジェクト'))).toBe(true)
+    expect(errors(diag).some((m) => m.includes('kf[0]'))).toBe(true)
+  })
+
+  it('戻る履歴の状態は、形まで正しいものだけを受け付ける', () => {
+    const base = { app: 'aikido-scroll-app', seq: 1, path: '#/techniques/ikkyo-omote', snap: {} }
+    expect(isNavState({ ...base, toggle: null })).toBe(true)
+    expect(isNavState({ ...base, toggle: { role: 'tori', part: 'eye', kf: 'kamae', depth: 2 } })).toBe(true)
+    expect(isNavState({ ...base, toggle: { role: 'tori', part: 'x"]', kf: 'kamae', depth: 1 } })).toBe(false)
+    expect(isNavState({ ...base, toggle: { role: 'tori', part: 'eye', kf: 'kamae', depth: 1e9 } })).toBe(false)
+    expect(isNavState({ ...base, toggle: undefined })).toBe(false)
+    expect(isNavState({ ...base, toggle: null, snap: [] })).toBe(false)
   })
 })

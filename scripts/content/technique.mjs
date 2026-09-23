@@ -46,6 +46,8 @@ export function toArray(v) {
 export function normalizeSources(raw) {
   const out = {}
   for (const [key, value] of Object.entries(raw ?? {})) {
+    // key は @src:key で引く名前。__proto__・constructor などは Object の組み込みと重なるので受け付けない（引けずに警告になる。D-46）
+    if (!/^[A-Za-z0-9_-]+$/.test(key) || key.startsWith('__') || key === 'constructor' || key === 'prototype') continue
     const s = String(value ?? '').trim()
     const m = s.match(/^(.*?)\s*(https?:\/\/\S+)$/)
     out[key] = m ? { name: m[1] || m[2], url: m[2] } : { name: s }
@@ -122,6 +124,8 @@ export function parseTechnique({ file, rel, raw, type, renderer, diag }) {
   if (!CATEGORIES.includes(data.category)) diag.error(top, `category は ${CATEGORIES.join('|')} のいずれか（現在: ${data.category}）`)
   const attacks = toArray(data.attacks)
   const defaultAttack = data.default_attack ? String(data.default_attack) : null
+  // 攻撃法は単語集の id（小文字ローマ字）。オブジェクトの名前にも使うので __proto__ などは通さない（docs/decisions.md D-46）
+  for (const a of attacks) if (!ID_RE.test(a)) diag.error(top, `attacks の「${a}」は小文字ローマ字・数字・ハイフンだけで書く`)
   if (type === 'technique' || attacks.length || defaultAttack) {
     if (!defaultAttack) diag.error(top, 'default_attack がありません')
     if (attacks[0] !== defaultAttack) diag.error(top, `attacks の先頭（${attacks[0]}）が default_attack（${defaultAttack}）と一致しません`)
@@ -179,7 +183,7 @@ export function parseTechnique({ file, rel, raw, type, renderer, diag }) {
 
   if (attackSection) parseAttacks(attackSection.nodes)
   for (const a of attacks.slice(1)) {
-    if (!attackOverrides[a]) diag.warn(top, `attacks の「${a}」に対応する「### [attack] ${a} | …」がありません`)
+    if (!Object.hasOwn(attackOverrides, a)) diag.warn(top, `attacks の「${a}」に対応する「### [attack] ${a} | …」がありません`)
   }
 
   const clean = (kf) => {
@@ -372,7 +376,11 @@ export function parseTechnique({ file, rel, raw, type, renderer, diag }) {
       const w = `attack=${slug}`
       if (!attacks.includes(slug)) diag.error(loc, `${w}: frontmatter の attacks にありません`)
       else if (slug === defaultAttack) diag.warn(loc, `${w}: 基本攻撃法（default_attack）の差分は書かない`)
-      if (attackOverrides[slug]) diag.error(loc, `${w}: 重複しています`)
+      if (!ID_RE.test(slug)) {
+        diag.error(loc, `${w}: slug は小文字ローマ字・数字・ハイフンだけで書く`)
+        continue
+      }
+      if (Object.hasOwn(attackOverrides, slug)) diag.error(loc, `${w}: 重複しています`)
 
       const sub = splitBy(g.nodes, 4)
       let overrides = /** @type {string[] | null} */ (null)

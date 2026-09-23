@@ -93,7 +93,8 @@ export function createRenderer({ resolveTerm, diag }) {
 
   function srcNode(key) {
     ctx.srcCount++
-    const src = ctx.sources?.[key]
+    // 自分の持つ key だけを見る（@src:constructor などで Object の組み込みを拾わない）
+    const src = ctx.sources && Object.hasOwn(ctx.sources, key) ? ctx.sources[key] : undefined
     const data = { hName: 'span', hProperties: { className: ['src'] } }
     if (!src) {
       diag.warn(ctx.loc, `${where()}@src:${key} が frontmatter の sources に定義されていません`)

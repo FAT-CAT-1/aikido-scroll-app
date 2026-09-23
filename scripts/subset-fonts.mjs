@@ -49,10 +49,11 @@ export const FONTS = [
     sha256: '4c051a78a21c4e8e9dccf1c754776d33f356b8cc6ef95d9b64761b9bae814b84',
   },
 ]
+// ライセンス文も公開物に入るので、フォント本体と同じく sha256 で固定する（docs/decisions.md D-46）
 const LICENSES = [
-  { dir: 'yujisyuku', out: 'LICENSE-YujiSyuku.txt' },
-  { dir: 'shipporimincho', out: 'LICENSE-ShipporiMincho.txt' },
-  { dir: 'zenoldmincho', out: 'LICENSE-ZenOldMincho.txt' },
+  { dir: 'yujisyuku', out: 'LICENSE-YujiSyuku.txt', sha256: 'ef7c85c72ae94381c8bc4832ae4e6fbabdeafa2bb8a31313cd75dce95a690256' },
+  { dir: 'shipporimincho', out: 'LICENSE-ShipporiMincho.txt', sha256: '41fba056279be5f45ff9a99e44b7b53897b42732f5806d8e666e0ab49ac6bd38' },
+  { dir: 'zenoldmincho', out: 'LICENSE-ZenOldMincho.txt', sha256: '469d214f9842809659c827b7f2adaf40ec0df6efdd5fe18b7127665c32aafaec' },
 ]
 
 // ---------- 文字集合 ----------
@@ -254,7 +255,7 @@ async function main() {
 
   for (const l of LICENSES) {
     const dest = path.join(SRC_DIR, `OFL-${l.dir}.txt`)
-    await fetchVerified(`${RAW}/${l.dir}/OFL.txt`, dest)
+    await fetchVerified(`${RAW}/${l.dir}/OFL.txt`, dest, l.sha256)
     await copyFile(dest, path.join(OUT_DIR, l.out))
   }
   // build:content が「サブセット外の文字」を警告するための一覧（本文書体 text の収録文字）

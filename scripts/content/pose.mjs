@@ -85,6 +85,12 @@ export function validatePose({ rel, id, pose, technique, diag }) {
   }
 
   if (pose.source !== undefined && !['estimate', 'edited', 'mocap'].includes(pose.source)) err('source は estimate / edited / mocap のいずれか')
+  // null や数値の kf があると以下の検査が例外で止まるので、先に弾く（D-46）
+  const bad = pose.keyframes.findIndex((kf) => !kf || typeof kf !== 'object' || Array.isArray(kf))
+  if (bad !== -1) {
+    err(`kf[${bad}] がオブジェクト（{ … }）ではありません`)
+    return false
+  }
 
   pose.keyframes.forEach((kf, i) => {
     const w = `kf[${i}]=${kf?.id}`

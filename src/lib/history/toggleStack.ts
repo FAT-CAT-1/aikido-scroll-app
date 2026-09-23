@@ -9,7 +9,7 @@
 //   → 戻ると保存した状態とトグルの深さが復元される（F-07）
 // - DOM・Svelte に依存しない（HistoryLike を差し替えて単体テストする）
 
-import type { Part, Role } from '../content/types'
+import { PARTS, type Part, type Role } from '../content/types'
 
 export const MAX_DEPTH = 5
 const APP = 'aikido-scroll-app'
@@ -41,10 +41,33 @@ export interface HistoryLike {
   go(delta: number): void
 }
 
+/** 開いている部位の記録として正しい形か（history.state は同じオリジンの別ページからも書けるので、形まで確かめる。docs/decisions.md D-46） */
+function isToggleEntry(t: unknown): t is ToggleEntry {
+  if (!t || typeof t !== 'object') return false
+  const o = t as Partial<ToggleEntry>
+  return (
+    (o.role === 'tori' || o.role === 'uke') &&
+    PARTS.includes(o.part as Part) &&
+    typeof o.kf === 'string' &&
+    Number.isInteger(o.depth) &&
+    (o.depth as number) >= 1 &&
+    (o.depth as number) <= MAX_DEPTH
+  )
+}
+
 export function isNavState(s: unknown, path?: string): s is NavState {
   if (!s || typeof s !== 'object') return false
   const o = s as Partial<NavState>
-  return o.app === APP && typeof o.path === 'string' && typeof o.seq === 'number' && (path === undefined || o.path === path)
+  return (
+    o.app === APP &&
+    typeof o.path === 'string' &&
+    typeof o.seq === 'number' &&
+    (path === undefined || o.path === path) &&
+    (o.toggle === null || isToggleEntry(o.toggle)) &&
+    !!o.snap &&
+    typeof o.snap === 'object' &&
+    !Array.isArray(o.snap)
+  )
 }
 
 type Listener = (state: NavState) => void

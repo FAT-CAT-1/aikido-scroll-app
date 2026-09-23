@@ -30,6 +30,20 @@ function replaceOnce(source, pattern, replacement, what) {
 }
 
 /** vite-plugin-pwa を使わないので、登録関数を何もしないものに置き換える */
+/**
+ * <script> の中に「<!--」があり、「-->」より前に「<script」が来ると、HTML の読み取りが本物の </script> を飲み込み、
+ * 以後の HTML がスクリプトとして扱われて壊れる（script data double escaped）。そうなる並びがあればビルドを止める
+ */
+function assertNoDoubleEscape(code, what) {
+  let i = code.indexOf('<!--')
+  while (i !== -1) {
+    const close = code.indexOf('-->', i + 4)
+    const open = code.slice(i + 4, close === -1 ? undefined : close).search(/<script[\s/>]/i)
+    if (open !== -1) throw new Error(`${what} に「<!--」の後の「<script」があり、1ファイルに埋め込めません`)
+    i = close === -1 ? -1 : code.indexOf('<!--', close + 3)
+  }
+}
+
 function pwaStub() {
   const stubId = '\0single-pwa-register'
   return {
@@ -93,13 +107,17 @@ function singleFile() {
 
       const inline = (html) => {
         let out = html
-        for (const chunk of chunks) {
-          // </script を含む文字列でスクリプトが途中で閉じないようにする
-          const code = chunk.code.replace(/<\/script/gi, '<\\/script')
-          out = replaceOnce(out, new RegExp(`<script type="module" crossorigin src="[^"]*${escapeRe(chunk.fileName)}"></script>`), `<script type="module">${code}</script>`, chunk.fileName)
-        }
+        // CSS を先に差し込む（JS を先に入れると、JS の中の文字列がタグの検索に当たりうるため。docs/decisions.md D-46）
         for (const style of styles) {
-          out = replaceOnce(out, new RegExp(`<link rel="stylesheet" crossorigin href="[^"]*${escapeRe(style.fileName)}">`), `<style>${String(style.source)}</style>`, style.fileName)
+          const css = String(style.source)
+          if (/<\/style/i.test(css)) throw new Error(`${style.fileName} に </style があり、<style> に埋め込めません`)
+          out = replaceOnce(out, new RegExp(`<link rel="stylesheet" crossorigin href="[^"]*${escapeRe(style.fileName)}">`), `<style>${css}</style>`, style.fileName)
+        }
+        for (const chunk of chunks) {
+          // </script を含む文字列でスクリプトが途中で閉じないようにする（大文字小文字はそのまま残す）
+          const code = chunk.code.replace(/<\/(script)/gi, '<\\/$1')
+          assertNoDoubleEscape(code, chunk.fileName)
+          out = replaceOnce(out, new RegExp(`<script type="module" crossorigin src="[^"]*${escapeRe(chunk.fileName)}"></script>`), `<script type="module">${code}</script>`, chunk.fileName)
         }
         return out
       }
