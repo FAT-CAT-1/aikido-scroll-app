@@ -185,8 +185,11 @@ export function figure(s, label) {
     // 腕
     const arm = s.arms[side]
     const sh = j[`shoulder_${side}`]
-    const dir = arm.dir ? norm(arm.dir) : norm(sub(arm.hand, sh))
-    const wristTarget = sub(arm.hand, mul(dir, L.hand))
+    // soft：つかんでいない手（位置は目安）。届かなければ肩からの向きはそのままに、届く所まで寄せる
+    const reach = L['upper-arm'] + L.forearm + L.hand - 0.02
+    const hand = arm.soft && len(sub(arm.hand, sh)) > reach ? add(sh, mul(norm(sub(arm.hand, sh)), reach)) : arm.hand
+    const dir = arm.dir ? norm(arm.dir) : norm(sub(hand, sh))
+    const wristTarget = sub(hand, mul(dir, L.hand))
     const pole = arm.pole ?? norm(add(DOWN, add(mul(right, 0.5 * sign), mul(front, -0.2))))
     const [elbow, wrist] = ik(sh, wristTarget, L['upper-arm'], L.forearm, pole, `${label} ${side}腕`)
     j[`elbow_${side}`] = elbow
@@ -255,6 +258,43 @@ export function prone({ hip, headYaw, faceSide = 'l', arms, legSpread = 0.08 }, 
     out.joints[`toe_${side}`] = add(a, mul(norm(add(mul(spine, -1), [0, -0.12, 0])), L.foot))
   }
   return out
+}
+
+/**
+ * 仰向け（背中を畳に着ける）。hip は床の点 [x, z]、headYaw は頭の方向。kneesUp なら両膝を立てる（足裏を畳に）。
+ * 仰向けでは体の右は rightOf(headYaw) の逆になる（うつ伏せと左右が入れ替わる）
+ */
+export function supine({ hip, headYaw, kneesUp = true, arms, lookAt }, label) {
+  const spine = fwd(headYaw)
+  const front = UP
+  const right = norm(cross(front, spine))
+  const h = [hip[0], 0.13, hip[1]]
+  const legs = {}
+  for (const [side, sign] of [
+    ['l', -1],
+    ['r', 1],
+  ]) {
+    const hj = add(h, mul(norm(sub(mul(right, 0.09 * sign), mul(spine, 0.07))), L['hip-hipjoint']))
+    const ankle = kneesUp
+      ? add(add(hj, mul(spine, -0.55)), add(mul(right, 0.05 * sign), [0, 0.08 - hj[1], 0]))
+      : add(add(hj, mul(spine, -0.835)), add(mul(right, 0.06 * sign), [0, 0.09 - hj[1], 0]))
+    legs[side] = { ankle, toe: yawOf(mul(spine, -1)), pole: kneesUp ? UP : [0, 1, 0] }
+  }
+  return figure(
+    {
+      hip: h,
+      yaw: headYaw,
+      spine,
+      front,
+      pelvisUp: spine,
+      pelvisFront: UP,
+      faceAt: add(add(h, mul(spine, 0.9)), [0, 0.6, 0]),
+      ...(lookAt ? { lookAt } : {}),
+      legs,
+      arms,
+    },
+    label,
+  )
 }
 
 const yawOf = (v) => (Math.atan2(v[2], v[0]) * 180) / Math.PI
