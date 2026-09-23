@@ -154,6 +154,14 @@ describe('pose.json の検証と原稿との突合', () => {
     expect(errors(diag).some((m) => m.includes('一致しません'))).toBe(true)
   })
 
+  it('source は estimate / edited / mocap だけ（無ければ推定扱い。D-45）', () => {
+    for (const [source, ok] of [['estimate', true], ['edited', true], ['mocap', true], ['guess', false]] as const) {
+      const diag = new Diagnostics()
+      const p = { ...pose([['kamae', 0], ['contact', 0.4], ['osae', 1]]), source }
+      expect(validatePose({ rel: 'p.json', id: 'test-waza', pose: p, technique, diag }), source).toBe(ok)
+    }
+  })
+
   it('関節の欠落・at の重複はエラーで出力しない', () => {
     const p = pose([['kamae', 0], ['contact', 0], ['osae', 1]])
     delete (p.keyframes[0]!.tori.joints as Record<string, unknown>).knee_b

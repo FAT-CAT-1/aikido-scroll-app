@@ -72,6 +72,7 @@ ankle_f    / ankle_b      足首
   "id": "ikkyo-omote",
   "viewBox": [1000, 600],
   "ground": 520,
+  "source": "estimate",                      // 動きの出どころ：estimate（記述からの推定・省略時も推定）／edited（ポーズエディタで直した）／mocap（動画から）。estimate の間は画面に「推定の動き」の注記（decisions D-45）
   "keyframes": [
     {
       "id": "kamae", "at": 0.0,                // content-spec の [kf] id / at と一致必須
@@ -101,6 +102,8 @@ ankle_f    / ankle_b      足首
 - `at` 単調増加。同一 `at` 禁止。
 - 15関節すべて必須。欠落 → エラー。
 - 骨長チェック：隣接関節間の距離がkf間で **±15%** を超えて変化 → 警告（伸び縮みした絵を防ぐ）。
+- `ease` は GSAP の名前だけ（例 `power2.inOut`、`back.out(1.7)`）。それ以外 → エラー（decisions D-44）。
+- `source` は `estimate` / `edited` / `mocap` だけ。ポーズエディタで関節を動かして保存すると `edited` になる。
 
 ---
 

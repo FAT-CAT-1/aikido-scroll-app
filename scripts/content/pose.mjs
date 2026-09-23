@@ -84,6 +84,8 @@ export function validatePose({ rel, id, pose, technique, diag }) {
     return false
   }
 
+  if (pose.source !== undefined && !['estimate', 'edited', 'mocap'].includes(pose.source)) err('source は estimate / edited / mocap のいずれか')
+
   pose.keyframes.forEach((kf, i) => {
     const w = `kf[${i}]=${kf?.id}`
     if (!isNum(kf.at)) err(`${w}: at が数値ではありません`)

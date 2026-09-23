@@ -172,7 +172,8 @@ export async function writePose(id, keyframes) {
     console.error(`${path.relative(process.cwd(), out)} は既にあります（エディタでの修正を守るため上書きしません。--force で上書き）`)
     process.exit(1)
   }
-  const pose = { id, viewBox: [1000, 600], ground: 520, keyframes }
+  // source: 記述からの推定（画面に「推定の動き」を出す。エディタで直して保存すると edited になる。docs/decisions.md D-45）
+  const pose = { id, viewBox: [1000, 600], ground: 520, source: 'estimate', keyframes }
   writeFileSync(out, JSON.stringify(pose, null, 2).replace(/\[\s+(-?\d+(?:\.\d+)?),\s+(-?\d+(?:\.\d+)?)\s+\]/g, '[$1, $2]') + '\n')
   console.log(`書き出し: ${path.relative(process.cwd(), out)}`)
   for (const w of warnings) console.log(`  注意: ${w}`)

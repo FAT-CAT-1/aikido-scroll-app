@@ -386,6 +386,8 @@ function validate() {
 
 // ---------- 読み込み・保存 ----------
 function formatPose(p) {
+  // 開いてから関節を動かした（取り消しで戻し切っていない）なら、出どころを「エディタで直した」にする。アプリの「推定の動き」の注記が消える（docs/decisions.md D-45）
+  if (undoStack.length) p.source = 'edited'
   return JSON.stringify(p, null, 2).replace(/\[\s+(-?\d+(?:\.\d+)?),\s+(-?\d+(?:\.\d+)?)\s+\]/g, '[$1, $2]') + '\n'
 }
 

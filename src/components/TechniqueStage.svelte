@@ -26,8 +26,8 @@
     bounds3d?: { min: Vec3; max: Vec3 } | null
     /** 3D が描けなかったとき（WebGL が使えない端末） */
     onfallback3d?: () => void
-    /** 3D の動きの出どころの注記 */
-    note3d?: string
+    /** 動きの出どころの注記（推定の動きなど。3D・2D の両方で絵の左上に出し、読み上げの説明にも含める） */
+    note?: string
     view: Role
     ground?: number
     label: string
@@ -49,7 +49,7 @@
     body3d = null,
     bounds3d = null,
     onfallback3d = () => {},
-    note3d = '',
+    note = '',
     view,
     ground = 520,
     label,
@@ -158,11 +158,14 @@
 
   <div class="drawing" bind:this={drawing} use:pinch={{ onpinch: handlePinch }}>
     {#if mode3d && scene3d && cam && body3d && bounds3d}
-      <Body3D scene={scene3d} {view} {cam} body={body3d} bounds={bounds3d} {label} focusPart={focused ? focusPart : null} {zoom} note={note3d} onfallback={onfallback3d} />
+      <Body3D scene={scene3d} {view} {cam} body={body3d} bounds={bounds3d} {label} focusPart={focused ? focusPart : null} {zoom} {note} onfallback={onfallback3d} />
     {:else if scene}
       <Zoomable scale={zoom} originX={origin.x} originY={origin.y}>
-        <Body pose={scene} {view} {ground} {label} />
+        <Body pose={scene} {view} {ground} label={note ? `${label}。${note}` : label} />
       </Zoomable>
+      {#if note}
+        <p class="note" aria-hidden="true">{note}</p>
+      {/if}
     {/if}
   </div>
 
@@ -249,7 +252,25 @@
     font-size: var(--text-l);
     cursor: pointer;
   }
+  /* 2D の推定の動きの注記（3D は Body3D が同じ形で描く。decisions D-41・D-45） */
+  .drawing > .note {
+    position: absolute;
+    left: var(--space-1);
+    top: var(--space-1);
+    margin: 0;
+    /* 1行に収めて絵の上端だけにかかるようにする（375px 幅で1行） */
+    max-width: calc(100% - 2 * var(--space-1));
+    padding: 2px var(--space-2);
+    border: 1px solid var(--sumi-tan);
+    border-radius: var(--radius-s);
+    background: var(--washi-light);
+    color: var(--sumi-nou);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    pointer-events: none;
+  }
   .drawing {
+    position: relative;
     aspect-ratio: 1000 / 600;
     width: 100%;
     overflow: hidden;

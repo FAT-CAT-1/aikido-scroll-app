@@ -2,6 +2,7 @@
   "id": "ikkyo-omote",
   "viewBox": [1000, 600],
   "ground": 520,
+  "source": "estimate",
   "keyframes": [
     {
       "id": "kamae",

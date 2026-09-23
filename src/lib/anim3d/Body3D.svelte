@@ -213,7 +213,8 @@
     left: var(--space-1);
     top: var(--space-1);
     margin: 0;
-    max-width: 70%;
+    /* 1行に収めて絵の上端だけにかかるようにする（375px 幅で1行） */
+    max-width: calc(100% - 2 * var(--space-1));
     padding: 2px var(--space-2);
     border: 1px solid var(--sumi-tan);
     border-radius: var(--radius-s);

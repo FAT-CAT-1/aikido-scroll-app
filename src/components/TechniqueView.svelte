@@ -106,6 +106,11 @@
 
   // ---- 3D：技全体が入るカメラ（技の間は動かさない） ----
   const use3d = $derived(can3d && !!pose3d && !!scene3d)
+  // 記述からの推定の動きには、3D でも 2D でも注記を出す（decisions D-41・D-45。2D は source が無ければ推定）
+  const ESTIMATE_NOTE = '推定の動き：実際の動きと異なる所があります'
+  const motionNote = $derived(
+    use3d ? (pose3d?.source === 'estimate' ? ESTIMATE_NOTE : '') : poseData && (poseData.source ?? 'estimate') === 'estimate' ? ESTIMATE_NOTE : '',
+  )
   const bounds3d = $derived(pose3d ? poseBounds(pose3d) : null)
   const points3d = $derived(pose3d ? posePoints(pose3d) : null)
   const cam = $derived(points3d ? frameCamera(points3d, camera, view) : null)
@@ -298,7 +303,7 @@
         body3d={pose3d?.body ?? null}
         {bounds3d}
         onfallback3d={onFallback3d}
-        note3d={pose3d?.source === 'estimate' ? '推定の動き：実際の動きと異なる所があります' : ''}
+        note={motionNote}
         {view}
         ground={poseData?.ground}
         label={use3d ? sceneLabel(technique?.name_ja ?? id, view, camera) : `${technique?.name_ja ?? id}の動き（${view === 'tori' ? '取り' : '受け'}の視点）`}

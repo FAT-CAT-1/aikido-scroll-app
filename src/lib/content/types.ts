@@ -146,6 +146,8 @@ export interface PoseData {
   id: string
   viewBox: [number, number]
   ground: number
+  /** 動きの出どころ。estimate（記述からの推定・無いときも推定扱い）／edited（ポーズエディタで直した）／mocap（動画から） */
+  source?: 'estimate' | 'edited' | 'mocap'
   keyframes: PoseKeyframe[]
 }
 
