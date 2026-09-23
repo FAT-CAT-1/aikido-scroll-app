@@ -75,10 +75,19 @@ test('WebGL が使えない端末では 2D の骨格で表示し、吹き出し�
   await expect(page.locator('#part-toggle')).toBeVisible()
 })
 
-test('3D の無い技（一教（裏））でも、記述からの推定の 2D には注記が出て読み上げにも含まれる', async ({ page }) => {
-  await openTechnique(page, 'ikkyo-ura')
+test('3D の無い技（入身投げ）でも、記述からの推定の 2D には注記が出て読み上げにも含まれる', async ({ page }) => {
+  await openTechnique(page, 'iriminage')
   await expect(page.locator('.body3d')).toHaveCount(0)
   // decisions D-45：2D のポーズも source が estimate（または無し）なら注記を出す
   await expect(page.locator('.drawing > .note')).toHaveText('推定の動き：実際の動きと異なる所があります')
   await expect(page.locator('svg.body')).toHaveAttribute('aria-label', /推定の動き/)
+})
+
+test('一教（裏）も 3D で描き、推定の注記が出る（転換〜抑えは表の形を回したもの。D-48）', async ({ page }) => {
+  await openTechnique(page, 'ikkyo-ura')
+  const body = page.locator('.body3d')
+  test.skip((await body.count()) === 0, 'この端末では WebGL が使えず 2D で表示')
+  await expect(page.locator('.body3d.ready')).toBeVisible({ timeout: 20_000 })
+  await expect(page.locator('.body3d .note')).toContainText('推定の動き')
+  await expect(page.locator('.bubble')).toHaveCount(6)
 })

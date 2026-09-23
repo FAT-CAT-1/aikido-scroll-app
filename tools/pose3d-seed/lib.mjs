@@ -35,6 +35,27 @@ export const fwd = (yaw) => [Math.cos(rad(yaw)), 0, Math.sin(rad(yaw))]
 export const rightOf = (yaw) => [-Math.sin(rad(yaw)), 0, Math.cos(rad(yaw))]
 /** 床の上の点 [x, z] → [x, y, z] */
 export const at = (x, z, y = 0) => [x, y, z]
+/**
+ * 姿勢を床の上で回して動かす。pivot（[x, z]）を中心に deg 度（向き yaw が増える向き）回してから offset（[x, z]）だけ動かす。
+ * 骨の長さ・床からの高さは変わらない。ほかの技で同じ形の場面を使い回すため（例：一教（裏）の転換〜抑えは表の入身〜抑えを回したもの）
+ */
+export function turnFigure(fig, deg, pivot = [0, 0], offset = [0, 0]) {
+  const c = Math.cos(rad(deg))
+  const s = Math.sin(rad(deg))
+  const tp = ([x, y, z]) => {
+    const dx = x - pivot[0]
+    const dz = z - pivot[1]
+    return [pivot[0] + dx * c - dz * s + offset[0], y, pivot[1] + dx * s + dz * c + offset[1]]
+  }
+  const tv = ([x, y, z]) => [x * c - z * s, y, x * s + z * c]
+  return { joints: Object.fromEntries(Object.entries(fig.joints).map(([k, v]) => [k, tp(v)])), gaze: tv(fig.gaze) }
+}
+
+/** 別の技の場面を読み込んだときの注意を消す（書き出す技の注意だけを表示する） */
+export function resetWarnings() {
+  warnings.length = 0
+}
+
 /** 2点を結ぶ水平の向き（度） */
 export const yawTo = (from, to) => (Math.atan2(to[2] - from[2], to[0] - from[0]) * 180) / Math.PI
 

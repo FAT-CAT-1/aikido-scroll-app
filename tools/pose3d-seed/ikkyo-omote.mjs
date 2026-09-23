@@ -8,6 +8,8 @@
 // - 入身：取りは後ろ足（右）を受けの脇の下へ大きく踏み込み、両手を前下へ下ろす。受けは膝と自由な手（左）を畳に着く
 // - 抑え：受けは腹這い、右腕を体に対して直角よりやや頭の側へ伸ばされる。取りは跪座で、受けに近い膝を脇に、他方の膝を手首の側に
 // - 残心：抑えを保ったまま取りは目線を上げる。受けは自由な手で畳を叩いて合図する
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { add, at, figure, fwd, kiza, lerp, mul, norm, prone, rightOf, STAND_HIP, sub, UP, writePose3D, yawTo } from './lib.mjs'
 
 const Y = 0.08 // 立っているときの足首の高さ
@@ -347,8 +349,13 @@ const hiza = (() => {
 })()
 const zanshin = pin('zanshin', 1.0, { tap: true, toriLean: 48, toriHeadPitch: 32, lookUp: true })
 
-writePose3D('ikkyo-omote', [kamae, furikaburi, contact, kuzushi, oreru, irimi, osaeIn, hiza, osae, zanshin], {
-  note: '記述からの推定（動画なし）。右の相半身・正面打ち。足運びと抑えの形は docs/content-review-notes.md の 3D の項を師範に確認する',
-})
+// 一教（裏）など、同じ形の場面を使う技から読み込めるようにする（直接実行したときだけ書き出す）
+export { Y, headOf, gripWrist, gripElbow, GRIPS, kamae, furikaburi, contact, kuzushi, oreru, irimi, osaeIn, hiza, osae, zanshin }
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  writePose3D('ikkyo-omote', [kamae, furikaburi, contact, kuzushi, oreru, irimi, osaeIn, hiza, osae, zanshin], {
+    note: '記述からの推定（動画なし）。右の相半身・正面打ち。足運びと抑えの形は docs/content-review-notes.md の 3D の項を師範に確認する',
+  })
+}
 void UP
 void yawTo
