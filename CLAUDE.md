@@ -1,52 +1,52 @@
 # 合氣道徹底解説アプリ（aikido-scroll-app）
 
-獨協大学合氣道部向け。和風（墨絵・『大神』風）の巻物横スクロールUIで、初段までの技を
-「取り／受け」の3D（Three.js）アニメーションと6部位×5階層（キーフレームごと）のトグル解説で学べる PWA。
-単独開発・認証なし・GitHub Pages 公開。
+獨協大学合氣道部のための PWA。和風の巻物を横に送りながら、初段までの技を取り・受けの 3D アニメと、6部位×5階層（キーフレームごと）の解説で学ぶ。単独開発・認証なし・GitHub Pages で公開。
+ディレクター（利用者）が要件と裁定を持ち、Claude が設計・実装・検証を担う。実装の方法は、下の制約の内側で自由に提案・選択してよい。
 
-## 分業
-- **企画（Claude Fable 5.1）**: 要件の咀嚼、情報設計、Stitch用メタプロンプト、レビュー観点の言語化。
-- **実装（Claude Opus 5）**: `docs/requirements.md` と `docs/design-complete.md` に従ってコードを書く。
-  `.claude/skills/aikido-scroll-app/SKILL.md` を必ず読んでから着手する。
+## 根幹の制約
+変える必要があるときは、理由と代案を添えてディレクターに提案する。
 
-## 着手前の儀式（ユーザーの流儀）
-1. 要件定義に不明点があれば **grill me**（疑問を全部ユーザーに質問して回答を得る）。
-2. 納品までのロードマップ（`docs/roadmap.md`）を提示し合意を取る。
-3. 実装 → ユーザーがレビュー → 次のロードマップ項目へ。
-4. ディレクトリ削除・force push・依存の大量変更など危険な操作は必ずユーザーに確認。
+- **スタック**：Vite + Svelte 5（runes）+ TypeScript、vite-plugin-pwa、GSAP、Three.js、Google Fonts（Yuji Syuku / Shippori Mincho / Zen Old Mincho）。一人で保守し続けられる範囲に保つため。
+- **技アニメ**：3D（Three.js）で描き、WebGL が使えない端末では inline SVG の 2D にする。AI 生成動画・Lottie・ゲームエンジンは使わない。動きの正しさを原稿と師範の校閲で確かめられる形にしておくため（D-36）。推定の動きには注記を出す（D-41）。
+- **原稿が唯一の出どころ**：技の解説・用語は `content/` の原稿（出典・信頼マーク付き）から生成し、コードに書かない。校閲と出典を一か所で管理するため。
+- **共通の契約**：部位 ID `#{role}-{part}[-{f|b}]` とデータ構造（技 → キーフレーム → 取り／受け → 6部位 → l1〜l5）。原稿・2D・3D・テストがこれを共有する。正は `docs/content-spec.md` と `docs/animation-spec.md`。
+- **ズームを止めない**：`user-scalable=no` やページ全体の `touch-action: none` は使わない。拡大して読む人がいるため（ピンチ判定はアニメ領域の中だけ）。
+- **安全**：原稿から作る HTML は `scripts/content/` の検証を通し、CSP を弱めない。原稿を `{@html}` で描いているため（D-44・D-46）。
+- **取り返しのつかない操作は先に確認**：フォルダの削除（rm -rf）、force push、依存の大量追加、設定ファイルの全面書き換え。
 
-## 絶対ルール（違反はレビューで差し戻し）
-1. 技アニメ本体は **3D（Three.js の WebGL）**。3D ポーズの無い技・WebGL が使えない端末は **inline SVG** の 2D。進捗の制御は GSAP。AI生成動画（Higgsfield等）・Lottie・Unity 等のゲームエンジンは技アニメに使わない（2026-09-23 決定。docs/decisions.md D-36、animation-spec §13）。
-2. 部位IDは `#{role}-{part}[-{f|b}]` 命名を厳守（role=uke|tori, part=eye|face|shoulder|hara|knee|foot, f=手前/b=奥。3D では f＝カメラに近い側。`docs/animation-spec.md` が正）。
-3. データ構造は `technique(表裏別) → keyframes[] → (tori|uke) → parts(6) → {l1..l5}`（`docs/content-spec.md` が正）。
-4. `user-scalable=no` やページ全体の `touch-action:none` でズームを殺さない（a11y）。ピンチ判定はアニメ領域内限定。
-5. トグルを開くたび `history.pushState`、`popstate` で1段閉じる。多段は depth スタックで管理。
-6. スタック固定: Vite + Svelte 5 (runes) + TypeScript / vite-plugin-pwa / GSAP / Three.js（技の 3D。2026-09-23 追加）/ Google Fonts（Yuji Syuku, Shippori Mincho, Zen Old Mincho）。
-7. 原稿の専門用語は `[[用語]]` 記法。ビルド時に単語集リンクへ変換し、未定義用語は警告。
+## 資料（食い違ったら上が正）
+1. `docs/content-spec.md` — 原稿の構造
+2. `docs/animation-spec.md` — 部位・ポーズ・3D（§13）
+3. `docs/backlog.md` — タスクと完了条件
+4. `docs/design-complete.md` — 設計とデザイントークン
+5. `docs/requirements.md` / `docs/research.md` / `docs/roadmap.md` — 初期資料
+
+記録の置き場：裁定は `docs/decisions.md`（D-xx）、ディレクター・師範の確認は `docs/content-review-notes.md`。実装の細部は `.claude/skills/aikido-scroll-app/`。
 
 ## コマンド
-- 開発: `npm run dev` ／ ビルド: `npm run build` ／ プレビュー: `npm run preview`
-- コンテンツ: `npm run build:content`（`content/**/*.md` → `src/generated/*.json`）
-- テスト: `npm run test`（Vitest）／ `npm run test:e2e`（Playwright）／ a11y: `npm run test:a11y`（axe）
-
-## ディレクトリ
-```
-content/   原稿md（技ごと1ファイル・単語集・章ページ）
-docs/      content-spec / animation-spec / backlog（正）+ requirements / design-complete / research / roadmap / stitch-prompts / higgsfield-guide
-src/       lib(anim, gesture, history, content) / components / styles / generated
-scripts/   build-content.mjs
-public/    manifest, icons, fonts(サブセット)
-```
-詳細は `docs/design-complete.md`。
+- `npm run dev` / `npm run build` / `npm run preview`
+- `npm run build:content` — 原稿 → `src/generated/*.json`（未定義の `[[用語]]` を警告）
+- `npm run check`（型）/ `npm run test`（Vitest）/ `npm run test:e2e`（Playwright）/ `npm run test:a11y`（axe）
+- 3D ポーズの初版：`node tools/pose3d-seed/<技>.mjs --force`
 
 ## 進め方
-**まず一教・表（ikkyo-omote、既定攻撃法＝正面打ち）1技だけを、巻物→アニメ→一時停止吹き出し→深層トグル→
-ピンチ→戻るボタンまで縦に貫通させる（技術検証スパイク）。** 成功後に Stitch で本デザイン化し、全技へ横展開する。
+- 結果が変わる選択肢があるときは、案と推奨・理由を添えて聞く。それ以外は判断して進め、報告に理由を書く。
+- 大きな作業は先に計画を示して合意する。仕上げは型・単体・E2E を通し、画面で動きを確かめてから報告する。
+- 提案や設計の説明は、図や比較表を入れた HTML（Artifact）で見せる。
 
-## 文書の優先順位（矛盾したらこの順）
-1. `docs/content-spec.md`（原稿の構造：技×表裏で1ファイル、キーフレームごと、5階層、信頼マーク、`[[用語]]`）
-2. `docs/animation-spec.md`（15関節 f/b 命名、pose.json、視点切替、再生/スクロール同期、ポーズエディタ、§13 の 3D）
-3. `docs/backlog.md`（タスク順・完了条件・レビュー基準）
-4. `docs/design-complete.md`（A部 基本設計＋B部 デザインシステム。旧 design.md / design-system.md を統合）
-5. `docs/requirements.md` / `docs/research.md` / `docs/roadmap.md`（初期版。上位と食い違う記述は上位が正）
-`.claude/skills/aikido-scroll-app/references/content-format.md` は旧版のため参照しない（content-spec.md を読む）。
+## 学習・リフレクト
+ディレクターの修正・指摘を反映したあと（反映そのものは feedback-round スキルの手順）、次の順で振り返る。
+
+1. **原因を1行に**：知らなかった事実／誤った思い込み／好みの違い、のどれか。
+2. **汎用化できるか**：同じ種類の誤りがほかの技・画面・ファイルでも起こりうる、確かめ方を書ける、既存の制約や学んだルールと矛盾しない — の3つを満たすもの。一度きりの事実は `docs/decisions.md` か `docs/content-review-notes.md` に記録するだけにする。
+3. **提案**：ルール案（1〜2行）、元の指摘、適用範囲、確かめ方を HTML で示し、承認を求める。
+4. **反映**：承認されたら「学んだルール」に追記する。テストや検査で確かめられるものは、そちらにも入れる（文章より確実）。見送られた案は「見送った案」に1行残し、同じ提案を繰り返さない。
+5. **見直し**：学んだルールが10件を超えたら、統合・削除・資料や `.claude/rules/` への移動を提案する。Claude Code の公式ガイダンス（memory・best practices）が変わったときも、この文書の形を見直す。
+
+## 学んだルール
+書式：`- ルール — 理由（元の指摘・日付）`
+
+- （まだ無い）
+
+## 見送った案
+- （まだ無い）

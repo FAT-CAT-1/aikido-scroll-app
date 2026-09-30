@@ -274,7 +274,7 @@
     aspect-ratio: 1000 / 600;
     width: 100%;
     overflow: hidden;
-    /* ピンチ判定のため、アニメ領域の要素にだけ touch-action を止める。ページ全体・吹き出し・解説の標準ズームとスクロールは生きる（CLAUDE.md 絶対ルール4） */
+    /* ピンチ判定のため、アニメ領域の要素にだけ touch-action を止める。ページ全体・吹き出し・解説の標準ズームとスクロールは生きる（a11y。docs/requirements.md） */
     touch-action: none;
   }
   .leaders {

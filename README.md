@@ -41,7 +41,7 @@
 
 ## 企画・仕様（まず読む）
 1. `docs/KICKOFF-PROMPT.md` — Claude Code 新規セッションに貼るメタプロンプト
-2. `CLAUDE.md` — 絶対ルールと**文書の優先順位**
+2. `CLAUDE.md` — 根幹の制約・**資料の優先順位**・学習の手順
 3. `.claude/skills/aikido-scroll-app/SKILL.md` — 実装スキル
 
 ## docs/ の構成

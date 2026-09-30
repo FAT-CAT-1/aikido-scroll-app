@@ -1,7 +1,7 @@
 // ピンチ判定（SKILL §4 / backlog T20・T21）
 // - Pointer Events で2ポインタの距離の変化を見る（MDN "Pinch zoom gestures" 方式）
 // - 1回のピンチで1段だけ発火（指を離すまで再発火しない）＋ 連続発火防止のクールダウン
-// - アニメ領域の要素にだけ付ける。touch-action: none はその要素の CSS で指定し、ページ全体の標準ズームは殺さない（CLAUDE.md 絶対ルール4）
+// - アニメ領域の要素にだけ付ける。touch-action: none はその要素の CSS で指定し、ページ全体の標準ズームは殺さない（a11y。docs/requirements.md）
 // - デスクトップのトラックパッド: Chromium/Firefox は ctrl+wheel、Safari は GestureEvent
 
 export type PinchDirection = 'out' | 'in'

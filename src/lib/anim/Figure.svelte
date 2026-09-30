@@ -1,7 +1,7 @@
 <svelte:options namespace="svg" />
 
 <script lang="ts">
-  // 1人分の棒人間（A 段階・墨の筆線）。部位 id は #{role}-{part}[-{f|b}]（CLAUDE.md 絶対ルール2）
+  // 1人分の棒人間（A 段階・墨の筆線）。部位 id は #{role}-{part}[-{f|b}]（docs/animation-spec.md §6）
   import type { FigurePose, Role } from '../content/types'
   import { FOOT_LEN, HARA_LEN, HEAD_R, add, dirVec, partAnchor, polyline, pt, scale } from './geometry'
 
