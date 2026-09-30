@@ -33,10 +33,10 @@ content/
 │  ├─ shihonage-ura.md
 │  ├─ iriminage.md      # 表裏区別なしは form: none
 │  └─ suwariwaza-kokyuho.md
-├─ kihon/               # 基礎動作（構造は技と同じ）
-│  ├─ hanmi.md  kamae.md  taisabaki.md  shikko.md
-│  ├─ ukemi-mae.md  ukemi-ushiro.md  kokyuho.md
-│  └─ attacks/shomen-uchi.md  katate-dori.md ...
+├─ kihon/               # 基礎動作（構造は技と同じ。一人の動きも取り・受けの2人の形で書く：decisions D-51）
+│  ├─ hanmi.md  tenkan.md  irimi-tenkan.md  shikko.md
+│  ├─ ukemi-ushiro.md  ukemi-mae.md
+│  └─ attacks/shomen-uchi.md  yokomen-uchi.md  tsuki.md  katate-dori.md  ryote-dori.md  kata-dori.md
 ├─ glossary/            # 単語集（1語1ファイル）
 │  ├─ irimi.md  tenkan.md  hanmi.md ...
 └─ pages/               # 沿革・理念（自由形式md）

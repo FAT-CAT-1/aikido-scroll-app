@@ -26,6 +26,7 @@
 ## コマンド
 - `npm run dev` / `npm run build` / `npm run preview`
 - `npm run build:content` — 原稿 → `src/generated/*.json`（未定義の `[[用語]]` を警告）
+- `node tools/check-manuscript.mjs <原稿>` — 原稿1本だけを同じ規則で検証（生成物は書かない）
 - `npm run check`（型）/ `npm run test`（Vitest）/ `npm run test:e2e`（Playwright）/ `npm run test:a11y`（axe）
 - 3D ポーズの初版：`node tools/pose3d-seed/<技>.mjs --force`
 

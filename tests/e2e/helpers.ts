@@ -2,9 +2,9 @@ import { expect, type Page } from '@playwright/test'
 
 export const TECHNIQUE = 'ikkyo-omote'
 
-/** 技詳細を開いて、一時停止（吹き出し表示）と Web フォントへの切り替えまで待つ */
-export async function openTechnique(page: Page, id = TECHNIQUE) {
-  await page.goto(`./#/techniques/${id}`)
+/** 技詳細（基礎動作は kind='kihon'）を開いて、一時停止（吹き出し表示）と Web フォントへの切り替えまで待つ */
+export async function openTechnique(page: Page, id = TECHNIQUE, kind: 'techniques' | 'kihon' = 'techniques') {
+  await page.goto(`./#/${kind}/${id}`)
   await expect(page.locator('.stage.paused')).toBeVisible()
   await expect(page.locator('.bubble')).toHaveCount(6)
   await waitForFonts(page)
