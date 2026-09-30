@@ -1,0 +1,262 @@
+{
+  "id": "shikko",
+  "viewBox": [1000, 600],
+  "ground": 520,
+  "source": "estimate",
+  "keyframes": [
+    {
+      "id": "seiza",
+      "at": 0,
+      "ease": "power1.inOut",
+      "tori": {
+        "facing": 1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [212, 333],
+          "neck": [210, 378],
+          "shoulder_f": [225, 386],
+          "shoulder_b": [193, 385],
+          "elbow_f": [246, 443],
+          "elbow_b": [210, 442],
+          "wrist_f": [298, 462],
+          "wrist_b": [260, 465],
+          "hip": [203, 502],
+          "hipjoint_f": [215, 508],
+          "hipjoint_b": [191, 507],
+          "knee_f": [330, 508],
+          "knee_b": [306, 515],
+          "ankle_f": [220, 500],
+          "ankle_b": [196, 503]
+        }
+      },
+      "uke": {
+        "facing": -1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [718, 333],
+          "neck": [720, 378],
+          "shoulder_f": [705, 386],
+          "shoulder_b": [737, 385],
+          "elbow_f": [684, 443],
+          "elbow_b": [720, 442],
+          "wrist_f": [632, 462],
+          "wrist_b": [670, 465],
+          "hip": [727, 502],
+          "hipjoint_f": [715, 508],
+          "hipjoint_b": [739, 507],
+          "knee_f": [600, 508],
+          "knee_b": [624, 515],
+          "ankle_f": [710, 500],
+          "ankle_b": [734, 503]
+        }
+      }
+    },
+    {
+      "id": "kiza",
+      "at": 0.2,
+      "ease": "power2.inOut",
+      "tori": {
+        "facing": 1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [210, 321],
+          "neck": [208, 366],
+          "shoulder_f": [224, 374],
+          "shoulder_b": [192, 373],
+          "elbow_f": [244, 431],
+          "elbow_b": [208, 431],
+          "wrist_f": [296, 449],
+          "wrist_b": [259, 453],
+          "hip": [204, 491],
+          "hipjoint_f": [216, 496],
+          "hipjoint_b": [192, 495],
+          "knee_f": [330, 508],
+          "knee_b": [305, 515],
+          "ankle_f": [220, 500],
+          "ankle_b": [196, 504]
+        }
+      },
+      "uke": {
+        "facing": -1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [718, 333],
+          "neck": [720, 378],
+          "shoulder_f": [705, 386],
+          "shoulder_b": [737, 385],
+          "elbow_f": [684, 443],
+          "elbow_b": [720, 442],
+          "wrist_f": [632, 462],
+          "wrist_b": [670, 465],
+          "hip": [727, 502],
+          "hipjoint_f": [715, 508],
+          "hipjoint_b": [739, 507],
+          "knee_f": [600, 508],
+          "knee_b": [624, 515],
+          "ankle_f": [710, 500],
+          "ankle_b": [734, 503]
+        }
+      }
+    },
+    {
+      "id": "ippo",
+      "at": 0.5,
+      "ease": "power2.inOut",
+      "tori": {
+        "facing": 1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [292, 316],
+          "neck": [291, 361],
+          "shoulder_f": [306, 369],
+          "shoulder_b": [275, 368],
+          "elbow_f": [327, 426],
+          "elbow_b": [291, 426],
+          "wrist_f": [379, 445],
+          "wrist_b": [341, 448],
+          "hip": [286, 486],
+          "hipjoint_f": [298, 491],
+          "hipjoint_b": [274, 490],
+          "knee_f": [412, 508],
+          "knee_b": [387, 515],
+          "ankle_f": [302, 500],
+          "ankle_b": [277, 504]
+        }
+      },
+      "uke": {
+        "facing": -1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [718, 333],
+          "neck": [720, 378],
+          "shoulder_f": [705, 386],
+          "shoulder_b": [737, 385],
+          "elbow_f": [684, 443],
+          "elbow_b": [720, 442],
+          "wrist_f": [632, 462],
+          "wrist_b": [670, 465],
+          "hip": [727, 502],
+          "hipjoint_f": [715, 508],
+          "hipjoint_b": [739, 507],
+          "knee_f": [600, 508],
+          "knee_b": [624, 515],
+          "ankle_f": [710, 500],
+          "ankle_b": [734, 503]
+        }
+      }
+    },
+    {
+      "id": "nippo",
+      "at": 0.8,
+      "ease": "power2.inOut",
+      "tori": {
+        "facing": 1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [350, 316],
+          "neck": [349, 361],
+          "shoulder_f": [364, 369],
+          "shoulder_b": [333, 368],
+          "elbow_f": [385, 426],
+          "elbow_b": [349, 426],
+          "wrist_f": [437, 445],
+          "wrist_b": [399, 448],
+          "hip": [344, 486],
+          "hipjoint_f": [356, 491],
+          "hipjoint_b": [332, 490],
+          "knee_f": [470, 508],
+          "knee_b": [445, 515],
+          "ankle_f": [360, 500],
+          "ankle_b": [335, 504]
+        }
+      },
+      "uke": {
+        "facing": -1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [718, 333],
+          "neck": [720, 378],
+          "shoulder_f": [705, 386],
+          "shoulder_b": [737, 385],
+          "elbow_f": [684, 443],
+          "elbow_b": [720, 442],
+          "wrist_f": [632, 462],
+          "wrist_b": [670, 465],
+          "hip": [727, 502],
+          "hipjoint_f": [715, 508],
+          "hipjoint_b": [739, 507],
+          "knee_f": [600, 508],
+          "knee_b": [624, 515],
+          "ankle_f": [710, 500],
+          "ankle_b": [734, 503]
+        }
+      }
+    },
+    {
+      "id": "tomaru",
+      "at": 1,
+      "tori": {
+        "facing": 1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [374, 321],
+          "neck": [372, 366],
+          "shoulder_f": [388, 374],
+          "shoulder_b": [356, 373],
+          "elbow_f": [408, 431],
+          "elbow_b": [372, 431],
+          "wrist_f": [460, 449],
+          "wrist_b": [423, 453],
+          "hip": [368, 491],
+          "hipjoint_f": [380, 496],
+          "hipjoint_b": [356, 495],
+          "knee_f": [494, 508],
+          "knee_b": [469, 515],
+          "ankle_f": [384, 500],
+          "ankle_b": [360, 504]
+        }
+      },
+      "uke": {
+        "facing": -1,
+        "head_dir": 0,
+        "gaze": -5,
+        "hara_dir": 0,
+        "joints": {
+          "head": [718, 333],
+          "neck": [720, 378],
+          "shoulder_f": [705, 386],
+          "shoulder_b": [737, 385],
+          "elbow_f": [684, 443],
+          "elbow_b": [720, 442],
+          "wrist_f": [632, 462],
+          "wrist_b": [670, 465],
+          "hip": [727, 502],
+          "hipjoint_f": [715, 508],
+          "hipjoint_b": [739, 507],
+          "knee_f": [600, 508],
+          "knee_b": [624, 515],
+          "ankle_f": [710, 500],
+          "ankle_b": [734, 503]
+        }
+      }
+    }
+  ]
+}

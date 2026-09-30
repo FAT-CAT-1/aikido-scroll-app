@@ -32,14 +32,14 @@ const grasp = (tori, side, toward) => ({
 const obiOf = (fig) => fig.joints.hara
 
 /** 座った姿勢で、脚の形を決めてから手の置き場所を決める（太ももの上など） */
-function seated(make, handsAt) {
+export function seated(make, handsAt) {
   const n = warnings.length
   const base = make({ l: { hand: [0, 0.3, 0], soft: true }, r: { hand: [0, 0.3, 0], soft: true } })
   warnings.length = n
   return make(handsAt(base))
 }
 /** 太ももの上に手を置く：手首は股関節から膝への t の所、指先は膝の方へ */
-const onThigh = (fig, side, t = 0.4) => {
+export const onThigh = (fig, side, t = 0.4) => {
   const hj = fig.joints[`hipjoint_${side}`]
   const knee = fig.joints[`knee_${side}`]
   const dir = norm(sub(knee, hj))

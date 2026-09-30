@@ -6,6 +6,9 @@ const KIHON = [
   { id: 'hanmi', name: '半身' },
   { id: 'tenkan', name: '転換' },
   { id: 'irimi-tenkan', name: '入身転換' },
+  { id: 'shikko', name: '膝行' },
+  { id: 'ukemi-ushiro', name: '後ろ受身' },
+  { id: 'ukemi-mae', name: '前受身' },
 ]
 
 test('基礎動作の一覧に項目が並び、選ぶとその基礎動作のページが開く', async ({ page }) => {
