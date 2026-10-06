@@ -129,6 +129,9 @@
 
   const glossaryName = (slug: string) => contentIndex.attack_names[slug]
   const attackName = (slug: string) => technique?.attack_overrides[slug]?.label ?? glossaryName(slug) ?? slug
+  // 攻撃法の基礎動作のページ（content/kihon/attacks/）があれば、技のページからそこへつなぐ（backlog K-5）
+  const kihonIds = new Set(contentIndex.kihon.map((k) => k.id))
+  const attackPage = $derived(attack && attack !== id && kihonIds.has(attack) ? `#/kihon/${attack}` : null)
 
   // ---- 巻物ストリップとの同期（ScrollDriven → 300ms 停止で Paused） ----
   function seekTo(p: number) {
@@ -293,6 +296,9 @@
           </select>
         </label>
       {/if}
+      {#if attack && attackPage}
+        <a class="attack-link" href={attackPage}><span class="attack-link-label">攻撃法</span>{attackName(attack)}<span aria-hidden="true">→</span></a>
+      {/if}
     </div>
 
     <div id="technique-stage" class="stage-block" class:focused={toggle !== null} role="tabpanel" aria-labelledby="view-tab-{view}" bind:this={stageBlock}>
@@ -410,6 +416,21 @@
     align-items: center;
     gap: var(--space-2);
     font-size: var(--text-s);
+  }
+  .attack-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: var(--tap-min);
+    font-size: var(--text-s);
+    color: var(--sumi-nou);
+    text-decoration: underline;
+    text-decoration-color: var(--line-ui);
+    text-underline-offset: 0.2em;
+  }
+  .attack-link-label {
+    color: var(--sumi-juu);
+    margin-right: var(--space-1);
   }
   .attack select {
     min-height: var(--tap-min);
