@@ -36,3 +36,7 @@ docs/references/*.txt
 # Playwright
 /blob-report/
 /playwright/.cache/
+
+# Claude Code の個人用設定（公開リポジトリに入れない。2026-10-06）
+.claude/settings.local.json
+.claude/worktrees/
