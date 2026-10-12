@@ -51,6 +51,9 @@ export function kanaRow(reading: string): string {
   let cp = ch.codePointAt(0)!
   if (cp >= 0x30a1 && cp <= 0x30f6) cp -= 0x60 // カタカナ → ひらがな
   if (cp < 0x3041 || cp > 0x3096) return '他'
+  // ゔ（う の濁音）と小さい ゕ・ゖ は、ん の後ろに並ぶ文字なので、行の頭からの判定だとわ行になってしまう
+  if (cp === 0x3094) return 'あ'
+  if (cp === 0x3095 || cp === 0x3096) return 'か'
   let row: string = KANA_ROWS[0]
   ROW_START.forEach((start, i) => {
     if (cp >= start) row = KANA_ROWS[i]!
