@@ -40,3 +40,9 @@ docs/references/*.txt
 # Claude Code の個人用設定（公開リポジトリに入れない。2026-10-06）
 .claude/settings.local.json
 .claude/worktrees/
+
+# Blender の作業ファイル（D-52。手元の PC だけ・git に入れない）
+*.blend
+*.blend1
+.blender-work/
+__pycache__/
