@@ -1,6 +1,6 @@
 # Claude Code キックオフ・メタプロンプト
 
-> 使い方：このzipを展開したディレクトリで `claude` を起動し、下の「▼ 貼り付け用」をそのまま最初のメッセージとして送る。
+> 使い方：このリポジトリのフォルダで `claude` を起動し、下の「▼ 貼り付け用」をそのまま最初のメッセージとして送る。
 > 2回目以降のセッションは末尾の「再開用」を使う。
 
 ---
@@ -19,7 +19,7 @@
 - あなた＝実装。仕様の解釈に迷ったら実装せず質問する。
 
 ## 最初にやること（この順で読む。読み終わるまでコードを書かない）
-1. CLAUDE.md（絶対ルール・文書の優先順位）
+1. CLAUDE.md（根幹の制約・資料の優先順位・学習の手順）
 2. .claude/skills/aikido-scroll-app/SKILL.md
 3. docs/content-spec.md（原稿の構造：技×表裏で1ファイル、キーフレームごと、5階層、信頼マーク、[[用語]]）
 4. docs/animation-spec.md（15関節 f/b、pose.json、視点切替、再生/スクロール同期、ポーズエディタ）
@@ -67,10 +67,10 @@ git log --oneline -20 と docs/backlog.md §7（ブロッカー欄）から現�
 
 ---
 
-## ▼ 原稿執筆セッション用（Fable役・技mdを書くとき）
+## ▼ 原稿執筆セッション用（原稿担当・技mdを書くとき）
 
 ```
-あなたは aikido-scroll-app の原稿担当（Claude Fable 5.1 相当）です。
+あなたは aikido-scroll-app の原稿担当です。
 docs/content-spec.md を唯一の書式として、docs/content-draft.md を元ネタに
 content/techniques/[技id].md を執筆してください。
 - キーフレームは content-spec §2-3 の共通語彙（kamae/contact/kuzushi/irimi/tenkan/nage/osae/zanshin）を基本に、技に合わせて可変
